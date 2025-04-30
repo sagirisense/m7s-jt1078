@@ -34,21 +34,19 @@ func newConnection(c net.Conn, log *slog.Logger, ptsFunc func(pack *jt1078.Packe
 	}
 }
 
-func (c *connection) run(audioChan <-chan []byte) error {
+func (c *connection) run() error {
 	var (
 		data      = make([]byte, 10*1024)
 		packParse = newPackageParse()
 		once      sync.Once
 		onJoinErr error
+		writeErr  error
 	)
 	defer func() {
 		packParse.clear()
 		clear(data)
 		c.stop()
 	}()
-	if audioChan != nil {
-		go c.write(audioChan)
-	}
 	for {
 		if n, err := c.conn.Read(data); err != nil {
 			if errors.Is(err, net.ErrClosed) || errors.Is(err, io.EOF) {
@@ -62,7 +60,9 @@ func (c *connection) run(audioChan <-chan []byte) error {
 						onJoinErr = c.onJoinEvent(c, pack)
 					})
 					if onJoinErr == nil {
-						c.handle(pack)
+						if err := c.handle(pack); err != nil {
+							writeErr = err
+						}
 					}
 				} else if errors.Is(err, jt1078.ErrBodyLength2Short) || errors.Is(err, jt1078.ErrHeaderLength2Short) {
 					// 数据长度不够的 忽略
@@ -73,18 +73,8 @@ func (c *connection) run(audioChan <-chan []byte) error {
 			if onJoinErr != nil {
 				return onJoinErr
 			}
-		}
-	}
-}
-
-func (c *connection) write(audioChan <-chan []byte) {
-	for {
-		select {
-		case <-c.stopChan:
-			return
-		case data := <-audioChan:
-			if _, err := c.conn.Write(data); err != nil {
-				return
+			if writeErr != nil {
+				return writeErr
 			}
 		}
 	}
@@ -97,7 +87,7 @@ func (c *connection) stop() {
 	})
 }
 
-func (c *connection) handle(packet *jt1078.Packet) {
+func (c *connection) handle(packet *jt1078.Packet) error {
 	pts := c.ptsFunc(packet)
 	data := packet.Body
 	var (
@@ -114,16 +104,14 @@ func (c *connection) handle(packet *jt1078.Packet) {
 	default:
 		c.Warn("unknown pt",
 			slog.String("pt", pt.String()))
-		return
+		return nil
 	}
 	if result != nil && writeFunc != nil {
 		if err := writeFunc(result); err != nil {
-			c.Warn("publish fail",
-				slog.Any("packet", packet.String()),
-				slog.String("err", err.Error()))
-			return
+			return err
 		}
 	}
+	return nil
 }
 
 func (c *connection) parseAudioPacket(pt jt1078.PTType, pts time.Duration, data []byte) pkg.IAVFrame {

@@ -1,61 +1,102 @@
 package pkg
 
 import (
+	"errors"
 	"fmt"
+	"io"
+	"log/slog"
 	"net"
+	"sync"
 )
 
 type audioOperationFunc func(record map[int]*session)
 
 type (
 	AudioManager struct {
+		logger            *slog.Logger
 		operationFuncChan chan audioOperationFunc
 		audioPorts        [2]int
 		audios            map[int]*session
+		onJoinURL         string
 	}
 
 	session struct {
 		// 是否使用
 		use bool
-		// 收到音频数据
-		audioChan chan []byte
+		// 把音频数据发送给设备
+		audioChan chan<- []byte
 	}
 )
 
-func NewAudioManager(audioPorts [2]int) *AudioManager {
+func NewAudioManager(logger *slog.Logger, audioPorts [2]int, onJoinURL string) *AudioManager {
 	return &AudioManager{
+		logger:            logger,
 		operationFuncChan: make(chan audioOperationFunc, 10),
 		audioPorts:        audioPorts,
+		onJoinURL:         onJoinURL,
 	}
 }
 
 func (s *AudioManager) Init() error {
 	audios := make(map[int]*session, 10)
-	for i := s.audioPorts[0]; i <= s.audioPorts[1]; i++ {
-		ch := make(chan []byte, 10)
-		listen, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", i))
+	for port := s.audioPorts[0]; port <= s.audioPorts[1]; port++ {
+		ch := make(chan []byte, 100)
+		listen, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", port))
 		if err != nil {
 			return err
 		}
-		go func(readChan chan<- []byte) {
+		go func(writeChan <-chan []byte, port int) {
 			for {
 				conn, err := listen.Accept()
 				if err == nil {
+					// 1. 设备连接到这个端口 发送回调
+					var (
+						stopChan = make(chan struct{})
+						once     sync.Once
+					)
+
+					// 2. 读取设备数据 只读不处理
 					go func() {
 						buf := make([]byte, 10*1024)
 						defer clear(buf)
 						for {
-							if n, err := conn.Read(buf); err != nil {
+							if _, err := conn.Read(buf); err != nil {
+								once.Do(func() {
+									close(stopChan)
+								})
+								if errors.Is(err, net.ErrClosed) || errors.Is(err, io.EOF) {
+									s.logger.Debug("connection close",
+										slog.Int("port", port),
+										slog.Any("device addr", conn.RemoteAddr().String()),
+										slog.Any("err", err))
+									return
+								}
+								s.logger.Error("read data",
+									slog.Int("port", port),
+									slog.Any("device addr", conn.RemoteAddr().String()),
+									slog.Any("err", err))
 								return
-							} else if n > 0 {
-								readChan <- buf[:n]
+							}
+						}
+					}()
+
+					// 3. 把浏览器收集的音频数据发给设备
+					go func() {
+						for {
+							select {
+							case <-stopChan:
+								return
+							case data := <-writeChan:
+								if _, err := conn.Write(data); err != nil {
+									return
+								}
 							}
 						}
 					}()
 				}
 			}
-		}(ch)
-		audios[i] = &session{
+		}(ch, port)
+		audios[port] = &session{
 			use:       false,
 			audioChan: ch,
 		}
@@ -73,10 +114,20 @@ func (s *AudioManager) Run() {
 	}
 }
 
-func (s *AudioManager) allocate() (<-chan []byte, int, error) {
+func (s *AudioManager) SendAudioData(port int, data []byte) {
+	ch := make(chan struct{})
+	s.operationFuncChan <- func(record map[int]*session) {
+		defer close(ch)
+		if v, ok := record[port]; ok {
+			v.audioChan <- data
+		}
+	}
+	<-ch
+}
+
+func (s *AudioManager) allocate() (int, error) {
 	type Message struct {
 		audioPort int
-		audioChan chan []byte
 		Err       error
 	}
 	ch := make(chan *Message)
@@ -84,7 +135,6 @@ func (s *AudioManager) allocate() (<-chan []byte, int, error) {
 	s.operationFuncChan <- func(record map[int]*session) {
 		msg := &Message{
 			audioPort: -1,
-			audioChan: nil,
 			Err:       fmt.Errorf("音频端口都被使用了"),
 		}
 		defer func() {
@@ -94,14 +144,13 @@ func (s *AudioManager) allocate() (<-chan []byte, int, error) {
 			if !v.use {
 				v.use = true
 				msg.audioPort = k
-				msg.audioChan = v.audioChan
 				msg.Err = nil
 				return
 			}
 		}
 	}
 	msg := <-ch
-	return msg.audioChan, msg.audioPort, msg.Err
+	return msg.audioPort, msg.Err
 }
 
 func (s *AudioManager) recycle(audioPort int) {

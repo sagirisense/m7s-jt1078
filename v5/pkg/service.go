@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"m7s.live/v5"
 	"net"
+	"net/http"
 	"time"
 )
 
@@ -52,18 +53,23 @@ func (s *Service) Run() {
 		}
 		client := newConnection(conn, s.Logger, s.opts.ptsFunc)
 		var (
-			audioChan <-chan []byte
 			httpBody  = map[string]any{}
 			audioPort int
 		)
-		if s.opts.audio {
-			audioChan, audioPort, err = s.opts.sessions.allocate()
+		if s.opts.intercom {
+			audioPort, err = s.opts.sessions.allocate()
 			if err != nil {
 				s.Warn("allocate error",
 					slog.String("err", err.Error()))
 				audioPort = -1
 			}
+			if s.opts.onAudioJoinURL != "" {
+				if !s.onIntercomEvent(s.opts.onJoinURL, audioPort) {
+					audioPort = 0
+				}
+			}
 		}
+
 		ctx, cancel := context.WithCancel(context.Background())
 		client.onJoinEvent = func(c *connection, pack *jt1078.Packet) error {
 			publisher, err := s.opts.pubFunc(ctx, pack)
@@ -81,7 +87,7 @@ func (s *Service) Run() {
 			return nil
 		}
 		client.onLeaveEvent = func() {
-			if s.opts.audio {
+			if s.opts.intercom {
 				s.opts.sessions.recycle(audioPort)
 			}
 			if len(httpBody) > 0 {
@@ -90,7 +96,7 @@ func (s *Service) Run() {
 			cancel()
 		}
 		go func() {
-			if err := client.run(audioChan); err != nil {
+			if err := client.run(); err != nil {
 				s.Warn("run error",
 					slog.Any("http body", httpBody),
 					slog.String("err", err.Error()))
@@ -106,4 +112,27 @@ func (s *Service) onNoticeEvent(url string, httpBody map[string]any) {
 		SetBody(httpBody).
 		ForceContentType("application/json; charset=utf-8").
 		Post(url)
+}
+
+func (s *Service) onIntercomEvent(url string, audioPort int) bool {
+	client := resty.New()
+	client.SetTimeout(1 * time.Second)
+	type Reply struct {
+		UseAudio bool `json:"useAudio"`
+	}
+	var reply Reply
+	response, err := client.R().
+		SetBody(map[string]any{
+			"audioPort": audioPort,
+		}).
+		SetResult(&reply).
+		ForceContentType("application/json; charset=utf-8").
+		Post(url)
+	if err != nil {
+		s.Warn("onIntercomEvent",
+			slog.String("url", url),
+			slog.String("err", err.Error()))
+		return false
+	}
+	return response.StatusCode() == http.StatusOK && reply.UseAudio
 }

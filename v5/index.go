@@ -21,11 +21,18 @@ var _ = m7s.InstallPlugin[JT1078Plugin]()
 type (
 	JT1078Plugin struct {
 		m7s.Plugin
-		AudioPorts  [2]int              `default:"[10000,10010]" desc:"音频端口 用于下发数据"`
+		Intercom    jt1078Intercom      `default:"{}" desc:"音频配置"`
 		RealTime    jt1078Stream        `default:"{}" desc:"实时推流"`
 		Playback    jt1078Stream        `default:"{}" desc:"回放推流"`
 		Simulations []jt1078Simulations `default:"[]" desc:"模拟客户端推流"`
 		sessions    *pkg.AudioManager
+	}
+
+	jt1078Intercom struct {
+		Enable     bool   `default:"false" desc:"是否开启音频"`
+		AudioPorts [2]int `default:"[10000,10010]" desc:"音频端口 用于下发数据"`
+		OnUseURL   string `default:"http://127.0.0.1:10011/api/v1/use-audio" desc:"音频端口是否使用"`
+		OnJoinURL  string `default:"http://127.0.0.1:10011/api/v1/join-audio" desc:"设备连接到音频端口时"`
 	}
 
 	jt1078Stream struct {
@@ -43,15 +50,20 @@ type (
 
 func (j *JT1078Plugin) OnInit() (err error) {
 	if j.RealTime.Addr != "" {
-		j.sessions = pkg.NewAudioManager(j.AudioPorts)
-		if err := j.sessions.Init(); err != nil {
-			j.Error("init error",
-				slog.String("err", err.Error()))
-			return err
+		if j.Intercom.Enable {
+			j.sessions = pkg.NewAudioManager(j.Logger, j.Intercom.AudioPorts, j.Intercom.OnJoinURL)
+			if err := j.sessions.Init(); err != nil {
+				j.Error("init error",
+					slog.String("err", err.Error()))
+				return err
+			}
+			j.Info("audio init",
+				slog.Any("limits", j.Intercom.AudioPorts),
+				slog.Any("on use url", j.Intercom.OnUseURL),
+				slog.Any("on join url", j.Intercom.OnJoinURL))
+			go j.sessions.Run()
 		}
-		j.Info("audio init",
-			slog.Any("limits", j.AudioPorts))
-		go j.sessions.Run()
+
 		service := pkg.NewService(j.RealTime.Addr, j.Logger,
 			pkg.WithURL(j.RealTime.OnJoinURL, j.RealTime.OnLeaveURL),
 			pkg.WithPubFunc(func(ctx context.Context, pack *jt1078.Packet) (publisher *m7s.Publisher, err error) {
@@ -69,7 +81,9 @@ func (j *JT1078Plugin) OnInit() (err error) {
 					return pub, err
 				}
 			}),
+			pkg.WithEnableIntercom(j.Intercom.Enable),
 			pkg.WithSessions(j.sessions),
+			pkg.WithAudioJoinURL(j.Intercom.OnUseURL),
 			pkg.WithPTSFunc(func(_ *jt1078.Packet) time.Duration {
 				return time.Duration(time.Now().UnixMilli()) * 90 // 实时视频使用本机时间戳
 			}),

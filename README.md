@@ -4,7 +4,7 @@
 - [v5代码参考](./example/v5/main.go)
 
 1. 目前v5版本还没有发布 需要把monibuca项目拉入到本地 使用go.work
-2. 在线播放地址  http://49.234.235.7:8088/mp4/live/jt1078-295696659617-1.mp4
+2. 在线播放  http://124.221.30.46:8088/preview/live/jt1078-295696659617-1?type=mp4
 
 ```
 .
@@ -40,7 +40,13 @@ global:
 
 jt1078:
   enable: true
-  audioports: [10000, 10010] # 音频端口 用于下发数据[min,max]
+
+  intercom:
+    enable: true # 是否启用 用于双向对讲
+    ports: [10000, 10010] # 音频端口 [min,max]
+    onaudiouseurl: "http://127.0.0.1:10011/api/v1/use-audio" # 音频端口是否使用
+    onaudiojoinurl: "http://127.0.0.1:10011/api/v1/join-audio" # 设备连接到音频端口的回调
+
   simulations:
     # jt1078文件 默认循环发送
       - name: ../testdata/data.txt
@@ -69,14 +75,19 @@ mp4:
 |---------------------|------------------------------------------------------------|------------------------------------------|
 | jt1078          	| jt1078配置                                               |                                          |
 |  &nbsp; enable        | 是否启用                                                  | `true`                                   |
-|  &nbsp; audioports    | 使用的音频端口列表 [min,max]                               | `[10000, 10010]`                         |
+|  &nbsp;intercom   	          | 对讲配置                                            |                                          |
+|   &nbsp;&nbsp;enable               | 是否启用                                          | `false`                                   |
+|   &nbsp;&nbsp;audioports          | 使用的音频端口列表 [min,max]                       | `[10000, 10010]`                         |
+|   &nbsp;&nbsp;onaudiouseurl       | 是否使用这个音频端口                                | `.http://127.0.0.1:10011/api/v1/use-audio`  |
+|   &nbsp;&nbsp;onaudiojoinurl      | 设备连接到这个音频端口                               | `http://127.0.0.1:10011/api/v1/audio-join` |
 |  &nbsp;simulations   	| 自定义模拟器测试1078流                                     |                                          |
-|   &nbsp;&nbsp;name    | 读取的文件                                                | `../data/data.txt`                       |
-|   &nbsp;&nbsp;addr    | 连接的地址 `IP:Port`.                                     | `127.0.0.1:1078`                         |
+|   &nbsp;&nbsp;name         | 读取的文件                                                | `../data/data.txt`                       |
+|   &nbsp;&nbsp;addr         | 连接的地址 `IP:Port`.                                     | `127.0.0.1:1078`                         |
 | &nbsp;realtime        | 实时视频                                                  |                                          |
 |   &nbsp;&nbsp;addr          | 监听地址                                            | `0.0.0.0:1078`                           |
 |   &nbsp;&nbsp;onjoinurl     | 有新流的时候 http回调                                 | `http://127.0.0.1:10011/api/v1/real-time-join` |
 |   &nbsp;&nbsp;onleaveurl    | 新流结束的时候 http回调                               | `http://127.0.0.1:10011/api/v1/real-time-leave` |
+|   &nbsp;&nbsp;onaudiourl    | 是否启用这个音频端口 http回调                          | `http://127.0.0.1:10011/api/v1/real-time-audio` |
 |   &nbsp;&nbsp;prefix        | 流名称前缀 实际流名称为前缀-手机号-通道号                | `live/jt1078-{phone_number}-{channel}`   |
 | &nbsp;playback              | 回放视频                                            |                                          |
 |   &nbsp;&nbsp;addr          | 监听地址                                            | `0.0.0.0:1079`                           |

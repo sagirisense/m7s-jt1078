@@ -32,7 +32,7 @@ func main() {
 	ctx := context.Background()
 	// 使用自定义模拟器推流 读取本地文件的
 	fmt.Println("preview", "http://127.0.0.1:8080/preview")
-	fmt.Println("模拟实时视频流地址", "http://127.0.0.1:8080/mp4/live/jt1078-295696659617-1.mp4")
-	fmt.Println("模拟回放视频流地址", "http://127.0.0.1:8080/mp4/live/jt1079-295696659617-1.mp4")
+	fmt.Println("模拟实时视频流地址", "http://127.0.0.1:8080/preview/live/jt1078-295696659617-1?type=mp4")
+	fmt.Println("模拟回放视频流地址", "http://127.0.0.1:8080/preview/live/jt1079-295696659617-1?type=mp4")
 	_ = m7s.Run(ctx, "./config.yaml")
 }
