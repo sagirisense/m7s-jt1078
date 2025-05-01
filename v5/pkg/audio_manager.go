@@ -63,6 +63,7 @@ func (s *AudioManager) Init() error {
 							if _, err := conn.Read(buf); err != nil {
 								once.Do(func() {
 									close(stopChan)
+									_ = conn.Close()
 								})
 								if errors.Is(err, net.ErrClosed) || errors.Is(err, io.EOF) {
 									s.logger.Debug("connection close",

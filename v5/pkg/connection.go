@@ -83,6 +83,9 @@ func (c *connection) run() error {
 func (c *connection) stop() {
 	c.stopOnce.Do(func() {
 		close(c.stopChan)
+		if c.conn != nil {
+			_ = c.conn.Close()
+		}
 		c.onLeaveEvent()
 	})
 }
