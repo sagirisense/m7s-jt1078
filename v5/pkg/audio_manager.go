@@ -37,9 +37,9 @@ func NewAudioManager(logger *slog.Logger, audioPorts [2]int, onJoinURL string) *
 	}
 }
 
-func (s *AudioManager) Init() error {
+func (am *AudioManager) Init() error {
 	audios := make(map[int]*session, 10)
-	for port := s.audioPorts[0]; port <= s.audioPorts[1]; port++ {
+	for port := am.audioPorts[0]; port <= am.audioPorts[1]; port++ {
 		ch := make(chan []byte, 100)
 		listen, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", port))
 		if err != nil {
@@ -50,6 +50,10 @@ func (s *AudioManager) Init() error {
 				conn, err := listen.Accept()
 				if err == nil {
 					// 1. 设备连接到这个端口 发送回调
+					go onNoticeEvent(am.onJoinURL, map[string]any{
+						"port":    port,
+						"address": conn.RemoteAddr().String(),
+					})
 					var (
 						stopChan = make(chan struct{})
 						once     sync.Once
@@ -66,13 +70,13 @@ func (s *AudioManager) Init() error {
 									_ = conn.Close()
 								})
 								if errors.Is(err, net.ErrClosed) || errors.Is(err, io.EOF) {
-									s.logger.Debug("connection close",
+									am.logger.Debug("connection close",
 										slog.Int("port", port),
 										slog.Any("device addr", conn.RemoteAddr().String()),
 										slog.Any("err", err))
 									return
 								}
-								s.logger.Error("read data",
+								am.logger.Error("read data",
 									slog.Int("port", port),
 									slog.Any("device addr", conn.RemoteAddr().String()),
 									slog.Any("err", err))
@@ -102,66 +106,27 @@ func (s *AudioManager) Init() error {
 			audioChan: ch,
 		}
 	}
-	s.audios = audios
+	am.audios = audios
 	return nil
 }
 
-func (s *AudioManager) Run() {
+func (am *AudioManager) Run() {
 	for {
 		select {
-		case opFunc := <-s.operationFuncChan:
-			opFunc(s.audios)
+		case opFunc := <-am.operationFuncChan:
+			opFunc(am.audios)
 		}
 	}
 }
 
-func (s *AudioManager) SendAudioData(ports []int, data []byte) {
+func (am *AudioManager) SendAudioData(ports []int, data []byte) {
 	ch := make(chan struct{})
-	s.operationFuncChan <- func(record map[int]*session) {
+	am.operationFuncChan <- func(record map[int]*session) {
 		defer close(ch)
 		for _, port := range ports {
 			if v, ok := record[port]; ok {
 				v.audioChan <- data
 			}
-		}
-	}
-	<-ch
-}
-
-func (s *AudioManager) allocate() (int, error) {
-	type Message struct {
-		audioPort int
-		Err       error
-	}
-	ch := make(chan *Message)
-	defer close(ch)
-	s.operationFuncChan <- func(record map[int]*session) {
-		msg := &Message{
-			audioPort: -1,
-			Err:       fmt.Errorf("音频端口都被使用了"),
-		}
-		defer func() {
-			ch <- msg
-		}()
-		for k, v := range record {
-			if !v.use {
-				v.use = true
-				msg.audioPort = k
-				msg.Err = nil
-				return
-			}
-		}
-	}
-	msg := <-ch
-	return msg.audioPort, msg.Err
-}
-
-func (s *AudioManager) recycle(audioPort int) {
-	ch := make(chan struct{})
-	s.operationFuncChan <- func(record map[int]*session) {
-		defer close(ch)
-		if _, ok := record[audioPort]; ok {
-			record[audioPort].use = false
 		}
 	}
 	<-ch

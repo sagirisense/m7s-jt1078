@@ -52,9 +52,3 @@ func WithSessions(sessions *AudioManager) Option {
 		o.sessions = sessions
 	}}
 }
-
-func WithAudioJoinURL(url string) Option {
-	return Option{F: func(o *Options) {
-		o.onAudioJoinURL = url
-	}}
-}

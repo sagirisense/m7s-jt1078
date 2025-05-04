@@ -38,7 +38,6 @@ type (
 		Enable       bool         `default:"false" desc:"是否开启音频"`
 		jt1078Webrtc jt1078Webrtc `default:"{}" desc:"webrtc相关配置"`
 		AudioPorts   [2]int       `default:"[10000,10010]" desc:"音频端口 用于下发数据"`
-		OnUseURL     string       `default:"http://127.0.0.1:10011/api/v1/use-audio" desc:"音频端口是否使用"`
 		OnJoinURL    string       `default:"http://127.0.0.1:10011/api/v1/join-audio" desc:"设备连接到音频端口时"`
 	}
 
@@ -65,7 +64,6 @@ func (j *JT1078Plugin) OnInit() (err error) {
 		if j.Intercom.Enable {
 			j.Info("audio init",
 				slog.Any("limits", j.Intercom.AudioPorts),
-				slog.Any("on use url", j.Intercom.OnUseURL),
 				slog.Any("on join url", j.Intercom.OnJoinURL))
 			j.sessions = pkg.NewAudioManager(j.Logger, j.Intercom.AudioPorts, j.Intercom.OnJoinURL)
 			if err := j.sessions.Init(); err != nil {
@@ -95,7 +93,6 @@ func (j *JT1078Plugin) OnInit() (err error) {
 			}),
 			pkg.WithEnableIntercom(j.Intercom.Enable),
 			pkg.WithSessions(j.sessions),
-			pkg.WithAudioJoinURL(j.Intercom.OnUseURL),
 			pkg.WithPTSFunc(func(_ *jt1078.Packet) time.Duration {
 				return time.Duration(time.Now().UnixMilli()) * 90 // 实时视频使用本机时间戳
 			}),
