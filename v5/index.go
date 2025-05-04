@@ -2,17 +2,23 @@ package v5
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/cuteLittleDevil/go-jt808/protocol/jt1078"
 	"github.com/cuteLittleDevil/m7s-jt1078/v5/pkg"
+	"github.com/pion/ice/v2"
+	"github.com/pion/webrtc/v3"
 	"golang.org/x/net/context"
+	"io"
 	"log/slog"
 	"m7s.live/v5"
 	m7sPkg "m7s.live/v5/pkg"
 	"net"
+	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -29,10 +35,16 @@ type (
 	}
 
 	jt1078Intercom struct {
-		Enable     bool   `default:"false" desc:"是否开启音频"`
-		AudioPorts [2]int `default:"[10000,10010]" desc:"音频端口 用于下发数据"`
-		OnUseURL   string `default:"http://127.0.0.1:10011/api/v1/use-audio" desc:"音频端口是否使用"`
-		OnJoinURL  string `default:"http://127.0.0.1:10011/api/v1/join-audio" desc:"设备连接到音频端口时"`
+		Enable       bool         `default:"false" desc:"是否开启音频"`
+		jt1078Webrtc jt1078Webrtc `default:"{}" desc:"webrtc相关配置"`
+		AudioPorts   [2]int       `default:"[10000,10010]" desc:"音频端口 用于下发数据"`
+		OnUseURL     string       `default:"http://127.0.0.1:10011/api/v1/use-audio" desc:"音频端口是否使用"`
+		OnJoinURL    string       `default:"http://127.0.0.1:10011/api/v1/join-audio" desc:"设备连接到音频端口时"`
+	}
+
+	jt1078Webrtc struct {
+		IP   string `default:"127.0.0.1" desc:"外网ip"`
+		Port int    `default:"8443" desc:"浏览器对讲数据传入的端口"`
 	}
 
 	jt1078Stream struct {
@@ -51,16 +63,16 @@ type (
 func (j *JT1078Plugin) OnInit() (err error) {
 	if j.RealTime.Addr != "" {
 		if j.Intercom.Enable {
+			j.Info("audio init",
+				slog.Any("limits", j.Intercom.AudioPorts),
+				slog.Any("on use url", j.Intercom.OnUseURL),
+				slog.Any("on join url", j.Intercom.OnJoinURL))
 			j.sessions = pkg.NewAudioManager(j.Logger, j.Intercom.AudioPorts, j.Intercom.OnJoinURL)
 			if err := j.sessions.Init(); err != nil {
 				j.Error("init error",
 					slog.String("err", err.Error()))
 				return err
 			}
-			j.Info("audio init",
-				slog.Any("limits", j.Intercom.AudioPorts),
-				slog.Any("on use url", j.Intercom.OnUseURL),
-				slog.Any("on join url", j.Intercom.OnJoinURL))
 			go j.sessions.Run()
 		}
 
@@ -107,11 +119,134 @@ func (j *JT1078Plugin) OnInit() (err error) {
 		)
 		go service.Run()
 	}
-	fmt.Println(j.Simulations)
 	if len(j.Simulations) > 0 {
+		params := make([]any, 0, len(j.Simulations))
+		for _, v := range j.Simulations {
+			params = append(params, slog.String(v.Name, v.Addr))
+		}
+		j.Info("simulations", params...)
 		go j.simulationPull()
 	}
 	return nil
+}
+
+func (j *JT1078Plugin) RegisterHandler() map[string]http.HandlerFunc {
+	if !j.Intercom.Enable {
+		return nil
+	}
+
+	api, err := j.getWebrtcApi()
+	if err != nil {
+		j.Error("get webrtc api error",
+			slog.Any("err", err))
+		return nil
+	}
+
+	return map[string]http.HandlerFunc{
+		"/api/v1/jt1079/intercom": func(w http.ResponseWriter, r *http.Request) {
+
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			type Request struct {
+				webrtc.SessionDescription
+				Ports []int `json:"ports"`
+			}
+
+			var req Request
+			if err := json.Unmarshal(body, &req); err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			offer := req.SessionDescription
+			offer.Type = webrtc.SDPTypeOffer
+
+			peerConnection, err := api.NewPeerConnection(webrtc.Configuration{})
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			var once sync.Once
+			peerConnection.OnICEConnectionStateChange(func(c webrtc.ICEConnectionState) {
+				j.Debug("ice state",
+					slog.String("state", c.String()))
+				switch c {
+				case webrtc.ICEConnectionStateDisconnected, webrtc.ICEConnectionStateFailed, webrtc.ICEConnectionStateClosed:
+					once.Do(func() {
+						_ = peerConnection.Close()
+					})
+				default:
+				}
+			})
+
+			if err := peerConnection.SetRemoteDescription(offer); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			gatherComplete := webrtc.GatheringCompletePromise(peerConnection)
+			answer, err := peerConnection.CreateAnswer(nil)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			if err := peerConnection.SetLocalDescription(answer); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			<-gatherComplete
+
+			peerConnection.OnTrack(func(track *webrtc.TrackRemote, receiver *webrtc.RTPReceiver) {
+				go func() {
+					if track.Kind() == webrtc.RTPCodecTypeAudio {
+						for {
+							packet, _, err := track.ReadRTP()
+							if err != nil {
+								j.Debug("read rtp fail",
+									slog.Any("err", err))
+								return
+							}
+							j.sessions.SendAudioData(req.Ports, packet.Payload)
+						}
+					}
+				}()
+			})
+
+			w.Header().Set("Content-Type", "application/json")
+			response, _ := json.Marshal(*peerConnection.LocalDescription())
+			if _, err := w.Write(response); err != nil {
+				j.Error("write sdp answer fail",
+					slog.Any("response", response),
+					slog.Any("err", err))
+			}
+		},
+	}
+}
+
+func (j *JT1078Plugin) getWebrtcApi() (api *webrtc.API, err error) {
+	settingEngine := webrtc.SettingEngine{}
+	mux, err := ice.NewMultiUDPMuxFromPort(j.Intercom.jt1078Webrtc.Port)
+	if err != nil {
+		return nil, err
+	}
+	settingEngine.SetICEUDPMux(mux)
+	settingEngine.SetNAT1To1IPs([]string{j.Intercom.jt1078Webrtc.IP}, webrtc.ICECandidateTypeHost)
+	api = webrtc.NewAPI(webrtc.WithSettingEngine(settingEngine), webrtc.WithMediaEngine(func() *webrtc.MediaEngine {
+		m := &webrtc.MediaEngine{}
+		if codecErr := m.RegisterCodec(webrtc.RTPCodecParameters{
+			RTPCodecCapability: webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypePCMA, ClockRate: 8000, Channels: 1, SDPFmtpLine: ""},
+			// RTP有效负载(载荷)类型，RTP Payload Type https://blog.csdn.net/caoshangpa/article/details/53008018
+			PayloadType: 8,
+		}, webrtc.RTPCodecTypeAudio); codecErr != nil {
+			err = fmt.Errorf("failed to register PCMA codec %w", codecErr)
+		}
+		return m
+	}()))
+	return api, err
 }
 
 func (j *JT1078Plugin) simulationPull() {

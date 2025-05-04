@@ -115,12 +115,14 @@ func (s *AudioManager) Run() {
 	}
 }
 
-func (s *AudioManager) SendAudioData(port int, data []byte) {
+func (s *AudioManager) SendAudioData(ports []int, data []byte) {
 	ch := make(chan struct{})
 	s.operationFuncChan <- func(record map[int]*session) {
 		defer close(ch)
-		if v, ok := record[port]; ok {
-			v.audioChan <- data
+		for _, port := range ports {
+			if v, ok := record[port]; ok {
+				v.audioChan <- data
+			}
 		}
 	}
 	<-ch

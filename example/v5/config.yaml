@@ -5,6 +5,9 @@ jt1078:
 
   intercom:
     enable: true # 是否启用 用于双向对讲
+    webrtc:
+      port: 10020 # 对讲默认udp端口
+      ip: 124.221.30.46 # 外网ip 用于SDP协商修改
     ports: [10000, 10010] # 音频端口 [min,max]
     onaudiouseurl: "http://127.0.0.1:10011/api/v1/use-audio" # 音频端口是否使用
     onaudiojoinurl: "http://127.0.0.1:10011/api/v1/join-audio" # 设备连接到音频端口的回调

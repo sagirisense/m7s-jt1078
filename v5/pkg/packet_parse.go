@@ -44,6 +44,7 @@ func (p *packageParse) parse(data []byte) func(func(packet *jt1078.Packet, err e
 					p.record[packet.DataType] = append(p.record[packet.DataType], packet.Body...)
 				default:
 					yield(nil, fmt.Errorf("unknown SubcontractType %s", packet.SubcontractType))
+					return
 				}
 				if complete {
 					packet.Body = p.record[packet.DataType]
