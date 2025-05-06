@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	_ "github.com/gin-gonic/gin"
 	"m7s.live/v5"
+	_ "m7s.live/v5/plugin/flv"
 	_ "m7s.live/v5/plugin/mp4"
 	_ "m7s.live/v5/plugin/preview"
 )

@@ -17,10 +17,11 @@
             box-sizing: border-box; /* 确保内边距和边框不会影响容器的宽度和高度 */
         }
         /* 新增样式，控制视频播放器的大小 */
-        #videoPlayer {
-            width: 50%; /* 可根据需求调整宽度 */
-            margin: 0 auto; /* 水平居中 */
-            display: block;
+        #videoElement {
+            width: 100%; /* 宽度铺满容器 */
+            margin-top: 20px; /* 与上方元素保持一定间距，可根据需求调整 */
+            display: block; /* 确保视频元素独占一行 */
+            background-color: black; /* 设置视频未加载时的背景颜色为黑色 */
         }
     </style>
 </head>
@@ -56,8 +57,13 @@
         </button>
     </form>
     <div id="response" class="mt-6"></div>
-    <video id="videoPlayer" class="mt-6 w-full" controls></video>
+    <video id="videoElement"></video>
 </div>
+
+<!-- https://github.com/bilibili/flv.js/releases-->
+<script src="flv.min.js"></script>
+
+
 <script>
     function sendRequest() {
         const url = document.getElementById('url').value;
@@ -87,17 +93,17 @@
             .then(result => {
                 // http://127.0.0.1:8080/preview/live/jt1079-295696659617-1?type=mp4
                 // http://124.221.30.46:11080/mp4/live/jt1078-10086-1.mp4
-                result.playUrl = `http://${ip}:11080/mp4/live/jt1078-${simCard}-1.mp4`;
+                result.playUrl = `http://${ip}:11080/flv/live/jt1078-${simCard}-1.flv`;
                 const responseDiv = document.getElementById('response');
                 responseDiv.innerHTML = `<pre class="bg-gray-100 p-4 rounded-md">${JSON.stringify(result, null, 2)}</pre>`;
-
-                const videoPlayer = document.getElementById('videoPlayer');
-                if (result.playUrl) {
-                    videoPlayer.src = result.playUrl;
-                } else {
-                    videoPlayer.src = '';
-                    responseDiv.innerHTML += '<p class="text-red-500">响应中未包含播放地址</p>';
-                }
+                var videoElement = document.getElementById('videoElement');
+                var flvPlayer = flvjs.createPlayer({
+                    type: 'flv',
+                    url: result.playUrl
+                });
+                flvPlayer.attachMediaElement(videoElement);
+                flvPlayer.load();
+                flvPlayer.play();
             })
             .catch(error => {
                 const responseDiv = document.getElementById('response');
