@@ -14,10 +14,8 @@ import (
 func init() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
-		// 回调接口 获取音频端口 用于对讲
 		fmt.Println(r.URL.String(), string(body))
 		//{
-		//	"audioPort": 10005,
 		//	"sim": "295696659617",
 		//	"channel": 1,
 		//	"streamPath": "live/jt1078-295696659617-1"
