@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+    <title>m7s-jt1078 音视频</title>
+    <style>
+        /* 新增的CSS类，用于控制容器宽度占屏幕的2/3 */
+        .two-thirds-width {
+            width: 60%;
+            max-width: none; /* 移除原来的max-width限制 */
+            max-height: 95vh; /* 设置最大高度为视口高度的95%，可根据需求调整 */
+            overflow-y: auto; /* 当内容超出最大高度时，显示垂直滚动条 */
+            box-sizing: border-box; /* 确保内边距和边框不会影响容器的宽度和高度 */
+        }
+        /* 新增样式，控制视频播放器的大小 */
+        #videoPlayer {
+            width: 50%; /* 可根据需求调整宽度 */
+            margin: 0 auto; /* 水平居中 */
+            display: block;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 flex justify-center items-center h-screen">
+<div class="bg-white p-8 rounded shadow-md w-full two-thirds-width">
+    <h2 class="text-2xl font-bold mb-6">音视频请求</h2>
+    <form id="requestForm" class="space-y-4">
+        <div class="flex space-x-4">
+            <div class="w-1/2">
+                <label for="url" class="block text-sm font-medium text-gray-700">web url</label>
+                <input type="text" id="url" value="http://124.221.30.46:11000/api/v1/jt808/9101"
+                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+            </div>
+            <div class="w-1/2">
+                <label for="simCard" class="block text-sm font-medium text-gray-700">sim 卡号</label>
+                <input type="text" id="simCard" value="10086" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+            </div>
+        </div>
+        <div class="flex space-x-4">
+            <div class="w-1/2">
+                <label for="ip" class="block text-sm font-medium text-gray-700">ip</label>
+                <input type="text" id="ip" value="124.221.30.46" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+            </div>
+            <div class="w-1/2">
+                <label for="port" class="block text-sm font-medium text-gray-700">端口</label>
+                <input type="text" id="port" value="11051" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+            </div>
+        </div>
+        <button type="button" onclick="sendRequest()"
+                class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            发送请求
+        </button>
+    </form>
+    <div id="response" class="mt-6"></div>
+    <video id="videoPlayer" class="mt-6 w-full" controls></video>
+</div>
+<script>
+    function sendRequest() {
+        const url = document.getElementById('url').value;
+        const simCard = document.getElementById('simCard').value;
+        const ip = document.getElementById('ip').value;
+        const port = parseInt(document.getElementById('port').value, 10);
+        const data = {
+            key: simCard,
+            data: {
+                serverIPAddr: ip,
+                serverIPLen: ip.length,
+                tcpPort: port,
+                channelNo: 1, // 通道号
+                dataType: 1,  // 0-音视频 1-视频 2-双向对讲 3-监听 4-中心广播 5-透传
+                streamType: 0, // 0-主码流 1-子码流
+            }
+        };
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+            .then(response => response.json())
+            .then(result => {
+                // http://127.0.0.1:8080/preview/live/jt1079-295696659617-1?type=mp4
+                // http://124.221.30.46:11080/mp4/live/jt1078-10086-1.mp4
+                result.playUrl = `http://${ip}:11080/mp4/live/jt1078-${simCard}-1.mp4`;
+                const responseDiv = document.getElementById('response');
+                responseDiv.innerHTML = `<pre class="bg-gray-100 p-4 rounded-md">${JSON.stringify(result, null, 2)}</pre>`;
+
+                const videoPlayer = document.getElementById('videoPlayer');
+                if (result.playUrl) {
+                    videoPlayer.src = result.playUrl;
+                } else {
+                    videoPlayer.src = '';
+                    responseDiv.innerHTML += '<p class="text-red-500">响应中未包含播放地址</p>';
+                }
+            })
+            .catch(error => {
+                const responseDiv = document.getElementById('response');
+                responseDiv.innerHTML = `<p class="text-red-500">请求出错: ${error.message}</p>`;
+                const videoPlayer = document.getElementById('videoPlayer');
+                videoPlayer.src = '';
+            });
+    }
+</script>
+</body>
+
+</html>

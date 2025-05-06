@@ -106,7 +106,8 @@ func (c *connection) handle(packet *jt1078.Packet) error {
 		writeFunc = c.publisher.WriteVideo
 	default:
 		c.Warn("unknown pt",
-			slog.String("pt", pt.String()))
+			slog.Int("pt", int(pt)),
+			slog.String("describe", pt.String()))
 		return nil
 	}
 	if result != nil && writeFunc != nil {
