@@ -50,8 +50,7 @@ func (s *Service) Run() {
 		}
 		client := newConnection(conn, s.Logger, s.opts.ptsFunc)
 		var (
-			httpBody  = map[string]any{}
-			audioPort int
+			httpBody = map[string]any{}
 		)
 		ctx, cancel := context.WithCancel(context.Background())
 		client.onJoinEvent = func(c *connection, pack *jt1078.Packet) error {
@@ -64,7 +63,6 @@ func (s *Service) Run() {
 				"streamPath": c.publisher.StreamPath,
 				"sim":        pack.Sim,
 				"channel":    pack.LogicChannel,
-				"audioPort":  audioPort,
 			}
 			go onNoticeEvent(s.opts.onJoinURL, httpBody)
 			return nil
