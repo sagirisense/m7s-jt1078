@@ -36,7 +36,7 @@ type (
 
 	jt1078Intercom struct {
 		Enable       bool         `default:"false" desc:"是否开启音频"`
-		jt1078Webrtc jt1078Webrtc `default:"{}" desc:"webrtc相关配置"`
+		Jt1078Webrtc jt1078Webrtc `default:"{}" desc:"webrtc相关配置"`
 		AudioPorts   [2]int       `default:"[10000,10010]" desc:"音频端口 用于下发数据"`
 		OnJoinURL    string       `default:"http://127.0.0.1:10011/api/v1/join-audio" desc:"设备连接到音频端口时"`
 	}
@@ -63,7 +63,7 @@ func (j *JT1078Plugin) OnInit() (err error) {
 	if j.RealTime.Addr != "" {
 		if j.Intercom.Enable {
 			j.Info("audio init",
-				slog.Any("limits", j.Intercom.AudioPorts),
+				slog.Any("audio ports", j.Intercom.AudioPorts),
 				slog.Any("on join url", j.Intercom.OnJoinURL))
 			j.sessions = pkg.NewAudioManager(j.Logger, j.Intercom.AudioPorts, j.Intercom.OnJoinURL)
 			if err := j.sessions.Init(); err != nil {
@@ -226,12 +226,12 @@ func (j *JT1078Plugin) RegisterHandler() map[string]http.HandlerFunc {
 
 func (j *JT1078Plugin) getWebrtcApi() (api *webrtc.API, err error) {
 	settingEngine := webrtc.SettingEngine{}
-	mux, err := ice.NewMultiUDPMuxFromPort(j.Intercom.jt1078Webrtc.Port)
+	mux, err := ice.NewMultiUDPMuxFromPort(j.Intercom.Jt1078Webrtc.Port)
 	if err != nil {
 		return nil, err
 	}
 	settingEngine.SetICEUDPMux(mux)
-	settingEngine.SetNAT1To1IPs([]string{j.Intercom.jt1078Webrtc.IP}, webrtc.ICECandidateTypeHost)
+	settingEngine.SetNAT1To1IPs([]string{j.Intercom.Jt1078Webrtc.IP}, webrtc.ICECandidateTypeHost)
 	api = webrtc.NewAPI(webrtc.WithSettingEngine(settingEngine), webrtc.WithMediaEngine(func() *webrtc.MediaEngine {
 		m := &webrtc.MediaEngine{}
 		if codecErr := m.RegisterCodec(webrtc.RTPCodecParameters{
