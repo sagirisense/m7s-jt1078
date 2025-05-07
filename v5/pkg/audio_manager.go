@@ -92,6 +92,7 @@ func (am *AudioManager) Init() error {
 							case <-stopChan:
 								return
 							case data := <-writeChan:
+								//fmt.Println("发送音频数据", conn.RemoteAddr(), len(data))
 								if _, err := conn.Write(data); err != nil {
 									return
 								}

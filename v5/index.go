@@ -140,7 +140,8 @@ func (j *JT1078Plugin) RegisterHandler() map[string]http.HandlerFunc {
 	}
 
 	return map[string]http.HandlerFunc{
-		"/api/v1/jt1079/intercom": func(w http.ResponseWriter, r *http.Request) {
+		// 实际路由是插件名+api -> /jt1078/api/v1/intercom
+		"/api/v1/intercom": func(w http.ResponseWriter, r *http.Request) {
 
 			body, err := io.ReadAll(r.Body)
 			if err != nil {
