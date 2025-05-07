@@ -60,6 +60,7 @@ func main() {
 	onEvent := r.Group("/api/v1/jt808/event/")
 	{
 		onEvent.POST("/join-audio", onEventJoinAudio)
+		onEvent.POST("/leave-audio", onEventLeaveAudio)
 		onEvent.POST("/real-time-join", onEventRealTimeJoin)
 		onEvent.POST("/real-time-leave", onEventRealTimeLeave)
 	}

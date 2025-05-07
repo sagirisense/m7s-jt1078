@@ -1,0 +1,62 @@
+### 开启实时视频 音视频
+POST https://124.221.30.46:12000/api/v1/jt808/9101
+Content-Type: application/json
+
+{
+  "key": "10088",
+  "data": {
+    "serverIPLen": 13,
+    "serverIPAddr": "124.221.30.46",
+    "tcpPort": 12051,
+    "udpPort": 0,
+    "channelNo": 1,
+    "dataType": 0,
+    "streamType": 0
+  }
+}
+
+
+### 关闭实时视频
+POST https://124.221.30.46:12000/api/v1/jt808/9102
+Content-Type: application/json
+
+{
+  "key": "10088",
+  "data": {
+    "channelNo": 1,
+    "controlCmd": 0,
+    "closeAudioVideoData": 0,
+    "streamType": 0
+  }
+}
+
+### 对讲测试 设备连接到服务器端口
+POST https://124.221.30.46:12000/api/v1/jt808/9101
+Content-Type: application/json
+
+{
+  "key": "10088",
+  "data": {
+    "serverIPLen": 13,
+    "serverIPAddr": "124.221.30.46",
+    "tcpPort": 12022,
+    "udpPort": 0,
+    "channelNo": 1,
+    "dataType": 2,
+    "streamType": 0
+  }
+}
+
+### 关闭对讲
+POST https://124.221.30.46:12000/api/v1/jt808/9102
+Content-Type: application/json
+
+{
+  "key": "10088",
+  "data": {
+    "channelNo": 1,
+    "controlCmd": 4,
+    "closeAudioVideoData": 0,
+    "streamType": 0
+  }
+}
