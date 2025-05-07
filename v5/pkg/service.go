@@ -40,7 +40,9 @@ func (s *Service) Run() {
 		return
 	}
 	s.Info("listen tcp",
-		slog.String("addr", s.addr))
+		slog.String("addr", s.addr),
+		slog.String("join", s.opts.onJoinURL),
+		slog.String("leave", s.opts.onLeaveURL))
 	for {
 		conn, err := listen.Accept()
 		if err != nil {

@@ -29,6 +29,28 @@ func onEventJoinAudio(c *gin.Context) {
 	})
 }
 
+func onEventLeaveAudio(c *gin.Context) {
+	type Request struct {
+		Port    int    `json:"port"`
+		Address string `json:"address"`
+	}
+	var req Request
+	if err := c.BindJSON(&req); err != nil {
+		c.JSON(http.StatusOK, Response{
+			Code: http.StatusBadRequest,
+			Msg:  "参数错误",
+			Data: err.Error(),
+		})
+		return
+	}
+	b, _ := json.MarshalIndent(req, "", "  ")
+	fmt.Println("音频离开", string(b))
+	c.JSON(http.StatusOK, Response{
+		Code: http.StatusOK,
+		Msg:  "ok",
+	})
+}
+
 func onEventRealTimeJoin(c *gin.Context) {
 	type Request struct {
 		StreamPath string `json:"streamPath"`

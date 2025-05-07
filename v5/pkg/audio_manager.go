@@ -17,7 +17,8 @@ type (
 		operationFuncChan chan audioOperationFunc
 		audioPorts        [2]int
 		audios            map[int]*session
-		onJoinURL         string
+		OnJoinURL         string
+		OnLeaveURL        string
 	}
 
 	session struct {
@@ -28,13 +29,16 @@ type (
 	}
 )
 
-func NewAudioManager(logger *slog.Logger, audioPorts [2]int, onJoinURL string) *AudioManager {
-	return &AudioManager{
+func NewAudioManager(logger *slog.Logger, audioPorts [2]int, opts ...func(am *AudioManager)) *AudioManager {
+	am := &AudioManager{
 		logger:            logger,
 		operationFuncChan: make(chan audioOperationFunc, 10),
 		audioPorts:        audioPorts,
-		onJoinURL:         onJoinURL,
 	}
+	for _, opt := range opts {
+		opt(am)
+	}
+	return am
 }
 
 func (am *AudioManager) Init() error {
@@ -50,7 +54,7 @@ func (am *AudioManager) Init() error {
 				conn, err := listen.Accept()
 				if err == nil {
 					// 1. 设备连接到这个端口 发送回调
-					go onNoticeEvent(am.onJoinURL, map[string]any{
+					go onNoticeEvent(am.OnJoinURL, map[string]any{
 						"port":    port,
 						"address": conn.RemoteAddr().String(),
 					})
@@ -90,6 +94,11 @@ func (am *AudioManager) Init() error {
 						for {
 							select {
 							case <-stopChan:
+								// 4. 设备断开了
+								onNoticeEvent(am.OnLeaveURL, map[string]any{
+									"port":    port,
+									"address": conn.RemoteAddr().String(),
+								})
 								return
 							case data := <-writeChan:
 								if _, err := conn.Write(data); err != nil {
