@@ -1,4 +1,4 @@
-module video
+module intercom
 
 go 1.23.8
 

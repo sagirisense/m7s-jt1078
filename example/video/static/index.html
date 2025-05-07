@@ -96,8 +96,8 @@
                 result.playUrl = `http://${ip}:11080/flv/live/jt1078-${simCard}-1.flv`;
                 const responseDiv = document.getElementById('response');
                 responseDiv.innerHTML = `<pre class="bg-gray-100 p-4 rounded-md">${JSON.stringify(result, null, 2)}</pre>`;
-                var videoElement = document.getElementById('videoElement');
-                var flvPlayer = flvjs.createPlayer({
+                const videoElement = document.getElementById('videoElement');
+                const flvPlayer = flvjs.createPlayer({
                     type: 'flv',
                     url: result.playUrl
                 });

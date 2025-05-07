@@ -36,7 +36,7 @@ func main() {
 
 	{
 		goJt808 := service.New(
-			service.WithHostPorts("0.0.0.0:11001"),
+			service.WithHostPorts("0.0.0.0:12001"),
 			service.WithCustomTerminalEventer(func() service.TerminalEventer {
 				return &LogTerminal{}
 			}),
@@ -51,6 +51,11 @@ func main() {
 	{
 		group.POST("/9101", p9101)
 		group.POST("/9102", p9102)
+		group.POST("/9201", p9201)
+		group.POST("/9202", p9202)
+		group.POST("/9205", p9205)
+		group.POST("/9206", p9206)
+		group.POST("/9208", p9208)
 	}
 	onEvent := r.Group("/api/v1/jt808/event/")
 	{
@@ -59,6 +64,8 @@ func main() {
 		onEvent.POST("/real-time-leave", onEventRealTimeLeave)
 	}
 	r.Static("/", "./static")
-	fmt.Println("服务已启动 默认首页:", "http://124.221.30.46:11000")
-	_ = r.Run(":11000")
+	// https://go-jt808.online:12000/
+	// https://124.221.30.46:12000
+	fmt.Println("服务已启动 默认首页:", "https://go-jt808.online:12000/")
+	fmt.Println(r.RunTLS(":12000", "go-jt808.online.crt", "go-jt808.online.key"))
 }

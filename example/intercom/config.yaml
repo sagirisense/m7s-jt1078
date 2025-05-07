@@ -1,0 +1,34 @@
+global:
+  http:
+    listenaddr: :12079
+    listenaddrtls: :12080 # 用于HTTPS方式访问API的端口配置
+    certfile: "go-jt808.online.crt"
+    keyfile: "go-jt808.online.key"
+  tcp:
+    listenaddr: :12081
+
+jt1078:
+  enable: true
+
+  intercom:
+    enable: true # 是否启用 用于双向对讲
+    jt1078webrtc:
+      port: 12020 # 对讲默认udp端口
+      ip: 124.221.30.46 # 外网ip 用于SDP协商修改
+    audioports: [12021, 12050] # 音频端口 [min,max]
+    onjoinurl: "https://127.0.0.1:12000/api/v1/jt808/event/join-audio" # 设备连接到音频端口的回调
+
+  realtime: # 实时视频
+    addr: '0.0.0.0:12051'
+    onjoinurl: "https://127.0.0.1:12000/api/v1/jt808/event/real-time-join"
+    onleaveurl: "https://127.0.0.1:12000/api/v1/jt808/event/real-time-leave"
+    prefix: "live/jt1078" # 默认自定义前缀-手机号-通道 如：live/jt1078-295696659617-1
+
+  playback: # 回放视频
+    addr: '0.0.0.0:12052'
+    onjoinurl: "https://127.0.0.1:12000/api/v1/play-back-join"
+    onleaveurl: "https://127.0.0.1:12000/api/v1/play-back-leave"
+    prefix: "live/jt1079" # 默认自定义前缀-手机号-通道 如：live/jt1079-295696659617-1
+
+mp4:
+  enable: true

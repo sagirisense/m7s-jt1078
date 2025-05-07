@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebRTC WHIP Audio Sender</title>
+</head>
+
+<body>
+<label for="newUrl">808 url:</label>
+<input type="text" id="newUrl" value="https://124.221.30.46:12000/api/v1/jt808/9101" style="width: 300px;">
+<label for="ip">ip:</label>
+<input type="text" id="ip" value="124.221.30.46">
+<label for="port">port:</label>
+<input type="text" id="port" value="12051">
+<label for="simCard">sim:</label>
+<input type="text" id="simCard" value="10088">
+<button id="newSendButton">设备音视频指令</button>
+<div id="newStatus"></div>
+<label for="audioPort">音频端口:</label>
+<input type="text" id="audioPort" value="12022">
+<button id="intercomSendButton">设备对讲指令</button>
+<div id="intercomStatus"></div>
+<label for="url">url:</label>
+<input type="text" id="url" value="https://124.221.30.46:12080/jt1078/api/v1/intercom" style="width: 300px;">
+<label for="portsInput">Ports:</label>
+<input type="text" id="portsInput" value="[12022]">
+<button id="startButton">webrtc对讲</button>
+<button id="stopButton" disabled>关闭webrtc对讲</button>
+<div id="status"></div>
+<video id="videoElement" width="640" height="360" controls></video>
+
+<!-- https://github.com/bilibili/flv.js/releases-->
+<script src="flv.min.js"></script>
+
+<script>
+    const startButton = document.getElementById('startButton');
+    const stopButton = document.getElementById('stopButton');
+    const statusDiv = document.getElementById('status');
+    let peerConnection;
+    let mediaStream;
+
+    async function startSendingAudio() {
+        try {
+            // 获取音频流
+            mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+            // 创建 RTCPeerConnection 实例
+            peerConnection = new RTCPeerConnection();
+
+            // 将音频轨道添加到连接中
+            mediaStream.getTracks().forEach(track => {
+                peerConnection.addTrack(track, mediaStream);
+            });
+            peerConnection.addEventListener('icecandidate', handleConnection);
+
+            // 创建一个 offer
+            const offer = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offer);
+            const url = document.getElementById('url').value;
+            const portsStr = document.getElementById('portsInput').value;
+            const ports = JSON.parse(portsStr);
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    sdp: offer.sdp,
+                    ports: ports,
+                })
+            });
+            console.log(response.ok)
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            const answer = new RTCSessionDescription({ type: data.type, sdp: data.sdp });
+            await peerConnection.setRemoteDescription(answer);
+
+            startButton.disabled = true;
+            stopButton.disabled = false;
+            statusDiv.textContent = '开始对讲';
+        } catch (error) {
+            console.error('Error starting audio sending:', error);
+            statusDiv.textContent = `Error: ${error.message}`;
+        }
+    }
+
+    function stopSendingAudio() {
+        if (peerConnection) {
+            peerConnection.close();
+            peerConnection = null;
+        }
+        if (mediaStream) {
+            mediaStream.getTracks().forEach(track => track.stop());
+            mediaStream = null;
+        }
+        startButton.disabled = false;
+        stopButton.disabled = true;
+        statusDiv.textContent = '关闭对讲';
+    }
+
+    startButton.addEventListener('click', startSendingAudio);
+    stopButton.addEventListener('click', stopSendingAudio);
+
+    function handleConnection(event) {
+        const iceCandidate = event.candidate;
+        if (iceCandidate) {
+            const newIceCandidate = new RTCIceCandidate(iceCandidate);
+            console.log(newIceCandidate)
+            console.log(`ICE candidate:\n` +
+                `${event.candidate.candidate}.`)
+        }
+    }
+
+    const newSendButton = document.getElementById('newSendButton');
+    const newStatusDiv = document.getElementById('newStatus');
+    async function sendNewRequest() {
+        const newUrl = document.getElementById('newUrl').value;
+        const ip = document.getElementById('ip').value;
+        const port = parseInt(document.getElementById('port').value, 10);
+        const simCard = document.getElementById('simCard').value;
+        try {
+            const response = await fetch(newUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    key: simCard,
+                    data: {
+                        serverIPAddr: ip,
+                        serverIPLen: ip.length,
+                        tcpPort: port,
+                        channelNo: 1, // 通道号
+                        dataType: 0,  // 0-音视频 1-视频 2-双向对讲 3-监听 4-中心广播 5-透传
+                        streamType: 0, // 0-主码流 1-子码流
+                    }
+                })
+            });
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            // http://124.221.30.46:12080/mp4/live/jt1078-10088-1.mp4
+            // https://go-jt808.online:12080/flv/live/jt1078-10088-1.flv
+            data.playUrl = `https://${ip}:12080/flv/live/jt1078-${simCard}-1.flv`;
+            newStatusDiv.innerHTML = `<pre>请求成功: ${JSON.stringify(data, null, 2)}</pre>`; // 格式化显示JSON
+            if (data.playUrl) {
+                const videoElement = document.getElementById('videoElement');
+                const flvPlayer = flvjs.createPlayer({
+                    type: 'flv',
+                    url: data.playUrl
+                });
+                flvPlayer.attachMediaElement(videoElement);
+                flvPlayer.load();
+                flvPlayer.play();
+            }
+        } catch (error) {
+            console.error('Error sending new request:', error);
+            newStatusDiv.innerHTML = `<pre>Error: ${error.message}</pre>`; // 格式化显示错误信息
+        }
+    }
+
+    newSendButton.addEventListener('click', sendNewRequest);
+
+    const intercomSendButton = document.getElementById('intercomSendButton');
+    const intercomStatusDiv = document.getElementById('intercomStatus');
+
+    async function sendIntercomRequest() {
+        const newUrl = document.getElementById('newUrl').value;
+        const ip = document.getElementById('ip').value;
+        const audioPort = parseInt(document.getElementById('audioPort').value, 10);
+        const simCard = document.getElementById('simCard').value;
+        try {
+            const response = await fetch(newUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    key: simCard,
+                    data: {
+                        serverIPAddr: ip,
+                        serverIPLen: ip.length,
+                        tcpPort: audioPort,
+                        channelNo: 1, // 通道号
+                        dataType: 2,  // 0-音视频 1-视频 2-双向对讲 3-监听 4-中心广播 5-透传
+                        streamType: 0, // 0-主码流 1-子码流
+                    }
+                })
+            });
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            intercomStatusDiv.innerHTML = `<pre>请求成功: ${JSON.stringify(data, null, 2)}</pre>`; // 格式化显示JSON
+        } catch (error) {
+            console.error('Error sending intercom request:', error);
+            intercomStatusDiv.innerHTML = `<pre>Error: ${error.message}</pre>`; // 格式化显示错误信息
+        }
+    }
+
+    intercomSendButton.addEventListener('click', sendIntercomRequest);
+</script>
+</body>
+
+</html>
