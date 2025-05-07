@@ -25,7 +25,7 @@
 <label for="url">url:</label>
 <input type="text" id="url" value="https://124.221.30.46:12080/jt1078/api/v1/intercom" style="width: 300px;">
 <label for="portsInput">Ports:</label>
-<input type="text" id="portsInput" value="[12022]">
+<input type="text" id="portsInput" value="12022">
 <button id="startButton">webrtc对讲</button>
 <button id="stopButton" disabled>关闭webrtc对讲</button>
 <div id="status"></div>
@@ -59,8 +59,9 @@
             const offer = await peerConnection.createOffer();
             await peerConnection.setLocalDescription(offer);
             const url = document.getElementById('url').value;
-            const portsStr = document.getElementById('portsInput').value;
-            const ports = JSON.parse(portsStr);
+            const audioPort = document.getElementById('portsInput').value;
+            const simCard = document.getElementById('simCard').value;
+
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
@@ -68,7 +69,13 @@
                 },
                 body: JSON.stringify({
                     sdp: offer.sdp,
-                    ports: ports,
+                    group: [
+                        {
+                            sim: simCard,
+                            channel: 1,
+                            audioPort: parseInt(audioPort, 10)
+                        }
+                    ]
                 })
             });
             console.log(response.ok)
@@ -135,7 +142,8 @@
                         serverIPLen: ip.length,
                         tcpPort: port,
                         channelNo: 1, // 通道号
-                        dataType: 0,  // 0-音视频 1-视频 2-双向对讲 3-监听 4-中心广播 5-透传
+                        // 选择0音视频的情况 因为音频是g711a flv支持不了
+                        dataType: 1,  // 0-音视频 1-视频 2-双向对讲 3-监听 4-中心广播 5-透传
                         streamType: 0, // 0-主码流 1-子码流
                     }
                 })
@@ -148,7 +156,8 @@
             // https://go-jt808.online:12080/flv/live/jt1078-10088-1.flv
             data.playUrl = `https://${ip}:12080/flv/live/jt1078-${simCard}-1.flv`;
             newStatusDiv.innerHTML = `<pre>请求成功: ${JSON.stringify(data, null, 2)}</pre>`; // 格式化显示JSON
-            if (data.playUrl) {
+            setTimeout(() => {
+                console.log('等待设备推流 假设3秒内完成');
                 const videoElement = document.getElementById('videoElement');
                 const flvPlayer = flvjs.createPlayer({
                     type: 'flv',
@@ -157,7 +166,7 @@
                 flvPlayer.attachMediaElement(videoElement);
                 flvPlayer.load();
                 flvPlayer.play();
-            }
+            }, 3000);
         } catch (error) {
             console.error('Error sending new request:', error);
             newStatusDiv.innerHTML = `<pre>Error: ${error.message}</pre>`; // 格式化显示错误信息
