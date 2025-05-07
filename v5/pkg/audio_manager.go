@@ -92,7 +92,6 @@ func (am *AudioManager) Init() error {
 							case <-stopChan:
 								return
 							case data := <-writeChan:
-								//fmt.Println("发送音频数据", conn.RemoteAddr(), len(data))
 								if _, err := conn.Write(data); err != nil {
 									return
 								}
@@ -120,14 +119,12 @@ func (am *AudioManager) Run() {
 	}
 }
 
-func (am *AudioManager) SendAudioData(ports []int, data []byte) {
+func (am *AudioManager) SendAudioData(port int, data []byte) {
 	ch := make(chan struct{})
 	am.operationFuncChan <- func(record map[int]*session) {
 		defer close(ch)
-		for _, port := range ports {
-			if v, ok := record[port]; ok {
-				v.audioChan <- data
-			}
+		if v, ok := record[port]; ok {
+			v.audioChan <- data
 		}
 	}
 	<-ch

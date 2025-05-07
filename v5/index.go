@@ -150,7 +150,11 @@ func (j *JT1078Plugin) RegisterHandler() map[string]http.HandlerFunc {
 			}
 			type Request struct {
 				webrtc.SessionDescription
-				Ports []int `json:"ports"`
+				Group []struct {
+					Sim       string `json:"sim"`
+					Channel   uint8  `json:"channel"`
+					AudioPort int    `json:"audioPort"`
+				}
 			}
 
 			var req Request
@@ -201,14 +205,32 @@ func (j *JT1078Plugin) RegisterHandler() map[string]http.HandlerFunc {
 			peerConnection.OnTrack(func(track *webrtc.TrackRemote, receiver *webrtc.RTPReceiver) {
 				go func() {
 					if track.Kind() == webrtc.RTPCodecTypeAudio {
+						var (
+							// mac电脑浏览器上测试 包大小是160
+							audioData = make([]byte, 1024)
+							seq       = uint16(0)
+						)
 						for {
-							packet, _, err := track.ReadRTP()
+							n, _, err := track.Read(audioData)
 							if err != nil {
-								j.Debug("read rtp fail",
+								j.Debug("read audio data fail",
 									slog.Any("err", err))
 								return
+							} else if n > 0 {
+								efficientData := audioData[:n]
+								for _, v := range req.Group {
+									p := jt1078.NewCustomPacket(v.Sim, v.Channel, func(p *jt1078.Packet) {
+										p.Flag.PT = jt1078.PTG711A
+										p.DataType = jt1078.DataTypeA // 音频包
+										p.Timestamp = uint64(time.Now().UnixMilli())
+										p.Seq = seq
+										p.Body = efficientData
+									})
+									data, _ := p.Encode()
+									j.sessions.SendAudioData(v.AudioPort, data)
+								}
+								seq++
 							}
-							j.sessions.SendAudioData(req.Ports, packet.Payload)
 						}
 					}
 				}()
@@ -236,7 +258,8 @@ func (j *JT1078Plugin) getWebrtcApi() (api *webrtc.API, err error) {
 	api = webrtc.NewAPI(webrtc.WithSettingEngine(settingEngine), webrtc.WithMediaEngine(func() *webrtc.MediaEngine {
 		m := &webrtc.MediaEngine{}
 		if codecErr := m.RegisterCodec(webrtc.RTPCodecParameters{
-			RTPCodecCapability: webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypePCMA, ClockRate: 8000, Channels: 1, SDPFmtpLine: ""},
+			// Channels: 1-单声道 2-立体声 3-多声道环绕
+			RTPCodecCapability: webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypePCMA, ClockRate: 8000, Channels: 2, SDPFmtpLine: ""},
 			// RTP有效负载(载荷)类型，RTP Payload Type https://blog.csdn.net/caoshangpa/article/details/53008018
 			PayloadType: 8,
 		}, webrtc.RTPCodecTypeAudio); codecErr != nil {

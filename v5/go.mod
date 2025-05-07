@@ -3,7 +3,7 @@ module github.com/cuteLittleDevil/m7s-jt1078/v5
 go 1.23.8
 
 require (
-	github.com/cuteLittleDevil/go-jt808/protocol v1.15.0
+	github.com/cuteLittleDevil/go-jt808/protocol v1.16.0
 	github.com/go-resty/resty/v2 v2.16.5
 	github.com/pion/ice/v2 v2.3.37
 	github.com/pion/webrtc/v3 v3.3.5
