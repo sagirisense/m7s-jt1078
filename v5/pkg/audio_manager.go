@@ -65,7 +65,8 @@ func (am *AudioManager) Init() error {
 
 					// 2. 读取设备数据 只读不处理
 					go func() {
-						buf := make([]byte, 10*1024)
+						// 模拟器测试读的数据 194
+						buf := make([]byte, 1024)
 						defer clear(buf)
 						for {
 							if _, err := conn.Read(buf); err != nil {

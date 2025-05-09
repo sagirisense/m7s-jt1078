@@ -216,6 +216,7 @@ func (j *JT1078Plugin) RegisterHandler() map[string]http.HandlerFunc {
 							audioData = make([]byte, 1024)
 							seq       = uint16(0)
 						)
+						defer clear(audioData)
 						for {
 							n, _, err := track.Read(audioData)
 							if err != nil {
@@ -223,7 +224,8 @@ func (j *JT1078Plugin) RegisterHandler() map[string]http.HandlerFunc {
 									slog.Any("err", err))
 								return
 							} else if n > 0 {
-								efficientData := audioData[:n]
+								efficientData := make([]byte, n)
+								copy(efficientData, audioData[:n])
 								for _, v := range req.Group {
 									p := jt1078.NewCustomPacket(v.Sim, v.Channel, func(p *jt1078.Packet) {
 										p.Flag.PT = jt1078.PTG711A
