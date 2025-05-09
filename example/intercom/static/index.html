@@ -95,8 +95,40 @@
         }
     }
 
-    function stopSendingAudio() {
+    async function stopSendingAudio() {
         if (peerConnection) {
+            // 发送关闭请求到服务器
+            try {
+                const simCard = document.getElementById('simCard').value;
+                const url = 'https://124.221.30.46:12000/api/v1/jt808/9102'
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        key: simCard,
+                        data: {
+                            channelNo: 1,
+                            controlCmd: 4,
+                            closeAudioVideoData: 0,
+                            streamType: 0
+                        }
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('关闭请求响应:', data);
+                statusDiv.textContent += ' (服务器已通知)';
+            } catch (error) {
+                console.error('Error sending stop request:', error);
+                statusDiv.textContent += ' (关闭请求失败)';
+            }
+
             peerConnection.close();
             peerConnection = null;
         }

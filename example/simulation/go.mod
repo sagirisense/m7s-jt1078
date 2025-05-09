@@ -5,7 +5,7 @@ go 1.23.8
 toolchain go1.24.0
 
 require (
-	github.com/cuteLittleDevil/m7s-jt1078/v5 v5.1.0
+	github.com/cuteLittleDevil/m7s-jt1078/v5 v5.3.1
 	m7s.live/v5 v5.0.0-beta20250429
 )
 
@@ -15,7 +15,7 @@ require (
 	github.com/c0deltin/duckdb-driver v0.1.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cilium/ebpf v0.15.0 // indirect
-	github.com/cuteLittleDevil/go-jt808/protocol v1.15.0 // indirect
+	github.com/cuteLittleDevil/go-jt808/protocol v1.16.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/deepch/vdk v0.0.27 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
