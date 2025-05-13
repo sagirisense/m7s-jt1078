@@ -4,8 +4,8 @@ jt1078:
   enable: true
 
   intercom:
-    enable: true # 是否启用 用于双向对讲
-    webrtc:
+    enable: false # 是否启用 用于双向对讲
+    jt1078webrtc:
       port: 10020 # 对讲默认udp端口
       ip: 124.221.30.46 # 外网ip 用于SDP协商修改
     audioPorts: [10000, 10010] # 音频端口 [min,max]
@@ -15,7 +15,7 @@ jt1078:
     # jt1078文件 默认循环发送
       - name: ../testdata/data.txt
         addr: 127.0.0.1:1078 # 模拟实时
-      - name: ../testdata/data.txt
+      - name: ../testdata/audio_data.txt
         addr: 127.0.0.1:1079 # 模拟回放
 
   realtime: # 实时视频

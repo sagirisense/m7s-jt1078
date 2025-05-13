@@ -6,10 +6,11 @@ toolchain go1.24.0
 
 require (
 	github.com/cuteLittleDevil/m7s-jt1078/v5 v5.3.1
-	m7s.live/v5 v5.0.0-beta20250429
+	m7s.live/v5 v5.0.0
 )
 
 require (
+	github.com/andybalholm/brotli v1.1.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bluenviron/mediacommon v1.14.0 // indirect
 	github.com/c0deltin/duckdb-driver v0.1.0 // indirect
@@ -37,7 +38,7 @@ require (
 	github.com/jackc/puddle/v2 v2.2.1 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
-	github.com/klauspost/compress v1.17.9 // indirect
+	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
 	github.com/marcboeker/go-duckdb v1.0.5 // indirect
 	github.com/mattn/go-sqlite3 v1.14.24 // indirect
@@ -80,6 +81,8 @@ require (
 	github.com/tetratelabs/wazero v1.8.0 // indirect
 	github.com/tklauser/go-sysconf v0.3.12 // indirect
 	github.com/tklauser/numcpus v0.6.1 // indirect
+	github.com/valyala/bytebufferpool v1.0.0 // indirect
+	github.com/valyala/fasthttp v1.61.0 // indirect
 	github.com/vishvananda/netlink v1.1.0 // indirect
 	github.com/vishvananda/netns v0.0.0-20191106174202-0a2b9b5464df // indirect
 	github.com/wlynxg/anet v0.0.5 // indirect

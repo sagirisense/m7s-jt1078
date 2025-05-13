@@ -8,7 +8,7 @@
 |----------|-----|-------------------|
 | 音视频 | http://124.221.30.46:11000 | [详情点击](./example/video) |
 | 对讲 | https://go-jt808.online:12000 | [详情点击](./example/intercom)  |
-| 模拟流 | http://124.221.30.46:8088/preview/live/jt1078-295696659617-1?type=mp4 | [详情点击](./example/simulation)  |
+| 模拟流 | 视频 http://124.221.30.46:8088/preview/live/jt1078-295696659617-1?type=mp4 <br/> 音视频 http://124.221.30.46:8088/preview/live/jt1079-156987000796-1| [详情点击](./example/simulation)  |
 
 ---
 
