@@ -26,6 +26,9 @@
 <input type="text" id="url" value="https://124.221.30.46:12080/jt1078/api/v1/intercom" style="width: 300px;">
 <label for="portsInput">音频端口组第一个:</label>
 <input type="text" id="portsInput" value="12022">
+<!-- 添加的文本框 -->
+<label for="newTextBox">音频类型文本框:</label>
+<input type="text" id="newTextBox" value="https://124.221.30.46:12000/api/v1/jt808/9003">
 <button id="startButton">webrtc对讲</button>
 <button id="stopButton" disabled>关闭webrtc对讲</button>
 <div id="status"></div>
@@ -62,6 +65,20 @@
             const audioPort = document.getElementById('portsInput').value;
             const simCard = document.getElementById('simCard').value;
 
+            // 发起新的HTTP请求并处理响应
+            const newUrl = document.getElementById('newUrl').value;
+            const newResponse = await fetch(newUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({})
+            });
+            if (!newResponse.ok) {
+                throw new Error(`HTTP error! status: ${newResponse.status}`);
+            }
+            const newData = await newResponse.json();
+            statusDiv.textContent = `音频类型: ${newData.enterAudioEncoding}`;
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
@@ -75,7 +92,9 @@
                             channel: 1,
                             audioPort: parseInt(audioPort, 10)
                         }
-                    ]
+                    ],
+                    //
+                    enterAudioEncoding: newData.enterAudioEncoding
                 })
             });
             console.log(response.ok)
@@ -89,6 +108,8 @@
             startButton.disabled = true;
             stopButton.disabled = false;
             statusDiv.textContent = '开始对讲';
+
+
         } catch (error) {
             console.error('Error starting audio sending:', error);
             statusDiv.textContent = `Error: ${error.message}`;

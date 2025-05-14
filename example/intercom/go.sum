@@ -360,6 +360,6 @@ gorm.io/driver/postgres v1.5.9/go.mod h1:DX3GReXH+3FPWGrrgffdvCk3DQ1dwDPdmbenSkw
 gorm.io/gorm v1.25.7/go.mod h1:hbnx/Oo0ChWMn1BIhpy1oYozzpM15i4YPuHDmfYtwg8=
 gorm.io/gorm v1.25.11 h1:/Wfyg1B/je1hnDx3sMkX+gAlxrlZpn6X0BXRlwXlvHg=
 gorm.io/gorm v1.25.11/go.mod h1:xh7N7RHfYlNc5EmcI/El95gXusucDrQnHXe0+CgWcLQ=
-m7s.live/v5 v5.0.0-beta20250506 h1:P86hD7MkQQwsiMEo6d/pL3p31ncXWbUDmv//rauOxKk=
-m7s.live/v5 v5.0.0-beta20250506/go.mod h1:bhha1YjHhBIhqRsGFTW2prbTxM6P4j0pKBpKz9nTeko=
+m7s.live/v5 v5.0.0 h1:wAP5MkNlxEdv/LtEXm9I4UG8ue08DfPHfsc6jNOWMuk=
+m7s.live/v5 v5.0.0/go.mod h1:bhha1YjHhBIhqRsGFTW2prbTxM6P4j0pKBpKz9nTeko=
 nullprogram.com/x/optparse v1.0.0/go.mod h1:KdyPE+Igbe0jQUrVfMqDMeJQIJZEuyV7pjYmp6pbG50=

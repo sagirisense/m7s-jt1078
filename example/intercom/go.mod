@@ -8,7 +8,7 @@ require (
 	github.com/cuteLittleDevil/go-jt808/shared v1.6.0
 	github.com/cuteLittleDevil/m7s-jt1078/v5 v5.3.1
 	github.com/gin-gonic/gin v1.10.0
-	m7s.live/v5 v5.0.0-beta20250506
+	m7s.live/v5 v5.0.0
 )
 
 require (

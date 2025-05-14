@@ -32,6 +32,19 @@ type (
 	}
 )
 
+func p9003(c *gin.Context) {
+	var req Request[*model.P0x9003]
+	if err := c.BindJSON(&req); err != nil {
+		c.JSON(http.StatusOK, Response{
+			Code: http.StatusBadRequest,
+			Msg:  "参数错误",
+			Data: err.Error(),
+		})
+		return
+	}
+	handleCommand(c, req.Key, req.Data)
+}
+
 func p9101(c *gin.Context) {
 	var req Request[*model.P0x9101]
 	if err := c.BindJSON(&req); err != nil {
