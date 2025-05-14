@@ -25,10 +25,9 @@
 <label for="url">url:</label>
 <input type="text" id="url" value="https://124.221.30.46:12080/jt1078/api/v1/intercom" style="width: 300px;">
 <label for="portsInput">音频端口组第一个:</label>
-<input type="text" id="portsInput" value="12022">
-<!-- 添加的文本框 -->
-<label for="newTextBox">音频类型文本框:</label>
-<input type="text" id="newTextBox" value="https://124.221.30.46:12000/api/v1/jt808/9003">
+<input type="text" id="portsInput" value="12022" style="width: 100px;">
+<label for="audioTextBox">音频类型文本框:</label>
+<input type="text" id="audioTextBox" value="https://124.221.30.46:12000/api/v1/jt808/9003" style="width: 300px;">
 <button id="startButton">webrtc对讲</button>
 <button id="stopButton" disabled>关闭webrtc对讲</button>
 <div id="status"></div>
@@ -66,19 +65,26 @@
             const simCard = document.getElementById('simCard').value;
 
             // 发起新的HTTP请求并处理响应
-            const newUrl = document.getElementById('newUrl').value;
+            const newUrl = document.getElementById('audioTextBox').value;
             const newResponse = await fetch(newUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({})
+                body: JSON.stringify({
+                    key: simCard,
+                    data:{}
+                })
             });
             if (!newResponse.ok) {
                 throw new Error(`HTTP error! status: ${newResponse.status}`);
             }
             const newData = await newResponse.json();
-            statusDiv.textContent = `音频类型: ${newData.enterAudioEncoding}`;
+            console.log(newData)
+            const audio = newData.data.details.enterAudioEncoding
+            console.log("音频类型 2-G722 6-G711A 7-G711U"+audio)
+
+            statusDiv.textContent = `音频类型:` + audio;
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
@@ -93,8 +99,8 @@
                             audioPort: parseInt(audioPort, 10)
                         }
                     ],
-                    //
-                    enterAudioEncoding: newData.enterAudioEncoding
+                    // EnterAudioEncoding 音频类型参数 根据jt1078-2016表12 2-G722 6-G711A 7-G711U
+                    enterAudioEncoding: parseInt(audio, 10)
                 })
             });
             console.log(response.ok)
