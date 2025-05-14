@@ -138,13 +138,10 @@ func (j *JT1078Plugin) RegisterHandler() map[string]http.HandlerFunc {
 		return nil
 	}
 
-	api, err := j.getWebrtcApi()
-	if err != nil {
-		j.Error("get webrtc api error",
-			slog.Any("err", err))
-		return nil
-	}
-
+	var (
+		ip      = j.Intercom.Jt1078Webrtc.IP
+		udpPort = j.Intercom.Jt1078Webrtc.Port
+	)
 	return map[string]http.HandlerFunc{
 		// 实际路由是插件名+api -> /jt1078/api/v1/intercom
 		"/api/v1/intercom": func(w http.ResponseWriter, r *http.Request) {
@@ -161,6 +158,9 @@ func (j *JT1078Plugin) RegisterHandler() map[string]http.HandlerFunc {
 					Channel   uint8  `json:"channel"`
 					AudioPort int    `json:"audioPort"`
 				}
+				// EnterAudioEncoding 音频类型参数 根据jt1078-2016表12 2-G722 6-G711A 7-G711U
+				// 默认6-G711A
+				EnterAudioEncoding int `json:"enterAudioEncoding"`
 			}
 
 			var req Request
@@ -170,6 +170,62 @@ func (j *JT1078Plugin) RegisterHandler() map[string]http.HandlerFunc {
 			}
 			offer := req.SessionDescription
 			offer.Type = webrtc.SDPTypeOffer
+
+			const (
+				G722  = 2
+				G711A = 6
+				G711U = 7
+			)
+			if req.EnterAudioEncoding == 0 {
+				req.EnterAudioEncoding = G711A
+			}
+
+			audioTypes := []int{G711A, G711U, G722}
+			supported := false
+			for _, v := range audioTypes {
+				if req.EnterAudioEncoding == v {
+					supported = true
+					break
+				}
+			}
+			if !supported {
+				http.Error(w, fmt.Errorf("unsupported audio type[%d]", req.EnterAudioEncoding).Error(), http.StatusBadRequest)
+				return
+			}
+
+			settingEngine := webrtc.SettingEngine{}
+			mux, err := ice.NewMultiUDPMuxFromPort(udpPort)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			settingEngine.SetICEUDPMux(mux)
+			settingEngine.SetNAT1To1IPs([]string{ip}, webrtc.ICECandidateTypeHost)
+			api := webrtc.NewAPI(webrtc.WithSettingEngine(settingEngine), webrtc.WithMediaEngine(func() *webrtc.MediaEngine {
+				m := &webrtc.MediaEngine{}
+				var rtpEncoding webrtc.RTPCodecParameters
+				switch req.EnterAudioEncoding {
+				case G711A:
+					rtpEncoding = webrtc.RTPCodecParameters{
+						// Channels: 1-单声道 2-立体声 3-多声道环绕
+						RTPCodecCapability: webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypePCMA, ClockRate: 8000, Channels: 2, SDPFmtpLine: ""},
+						// RTP有效负载(载荷)类型，RTP Payload Type https://blog.csdn.net/caoshangpa/article/details/53008018
+						PayloadType: 8,
+					}
+				case G711U:
+					rtpEncoding = webrtc.RTPCodecParameters{
+						RTPCodecCapability: webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypePCMU, ClockRate: 8000},
+						PayloadType:        0,
+					}
+				case G722:
+					rtpEncoding = webrtc.RTPCodecParameters{
+						RTPCodecCapability: webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypePCMU, ClockRate: 8000},
+						PayloadType:        9,
+					}
+				}
+				_ = m.RegisterCodec(rtpEncoding, webrtc.RTPCodecTypeAudio)
+				return m
+			}()))
 
 			peerConnection, err := api.NewPeerConnection(webrtc.Configuration{})
 			if err != nil {
@@ -253,29 +309,6 @@ func (j *JT1078Plugin) RegisterHandler() map[string]http.HandlerFunc {
 			}
 		},
 	}
-}
-
-func (j *JT1078Plugin) getWebrtcApi() (api *webrtc.API, err error) {
-	settingEngine := webrtc.SettingEngine{}
-	mux, err := ice.NewMultiUDPMuxFromPort(j.Intercom.Jt1078Webrtc.Port)
-	if err != nil {
-		return nil, err
-	}
-	settingEngine.SetICEUDPMux(mux)
-	settingEngine.SetNAT1To1IPs([]string{j.Intercom.Jt1078Webrtc.IP}, webrtc.ICECandidateTypeHost)
-	api = webrtc.NewAPI(webrtc.WithSettingEngine(settingEngine), webrtc.WithMediaEngine(func() *webrtc.MediaEngine {
-		m := &webrtc.MediaEngine{}
-		if codecErr := m.RegisterCodec(webrtc.RTPCodecParameters{
-			// Channels: 1-单声道 2-立体声 3-多声道环绕
-			RTPCodecCapability: webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypePCMA, ClockRate: 8000, Channels: 2, SDPFmtpLine: ""},
-			// RTP有效负载(载荷)类型，RTP Payload Type https://blog.csdn.net/caoshangpa/article/details/53008018
-			PayloadType: 8,
-		}, webrtc.RTPCodecTypeAudio); codecErr != nil {
-			err = fmt.Errorf("failed to register PCMA codec %w", codecErr)
-		}
-		return m
-	}()))
-	return api, err
 }
 
 func (j *JT1078Plugin) simulationPull() {
