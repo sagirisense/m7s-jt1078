@@ -142,6 +142,11 @@ func (j *JT1078Plugin) RegisterHandler() map[string]http.HandlerFunc {
 		ip      = j.Intercom.Jt1078Webrtc.IP
 		udpPort = j.Intercom.Jt1078Webrtc.Port
 	)
+	mux, err := ice.NewMultiUDPMuxFromPort(udpPort)
+	if err != nil {
+		return nil
+	}
+
 	return map[string]http.HandlerFunc{
 		// 实际路由是插件名+api -> /jt1078/api/v1/intercom
 		"/api/v1/intercom": func(w http.ResponseWriter, r *http.Request) {
@@ -194,11 +199,6 @@ func (j *JT1078Plugin) RegisterHandler() map[string]http.HandlerFunc {
 			}
 
 			settingEngine := webrtc.SettingEngine{}
-			mux, err := ice.NewMultiUDPMuxFromPort(udpPort)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				return
-			}
 			settingEngine.SetICEUDPMux(mux)
 			settingEngine.SetNAT1To1IPs([]string{ip}, webrtc.ICECandidateTypeHost)
 			api := webrtc.NewAPI(webrtc.WithSettingEngine(settingEngine), webrtc.WithMediaEngine(func() *webrtc.MediaEngine {
