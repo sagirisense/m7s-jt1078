@@ -208,7 +208,7 @@ func (j *JT1078Plugin) RegisterHandler() map[string]http.HandlerFunc {
 				case G711A:
 					rtpEncoding = webrtc.RTPCodecParameters{
 						// Channels: 1-单声道 2-立体声 3-多声道环绕
-						RTPCodecCapability: webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypePCMA, ClockRate: 8000, Channels: 2, SDPFmtpLine: ""},
+						RTPCodecCapability: webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypePCMA, ClockRate: 8000},
 						// RTP有效负载(载荷)类型，RTP Payload Type https://blog.csdn.net/caoshangpa/article/details/53008018
 						PayloadType: 8,
 					}
@@ -219,7 +219,7 @@ func (j *JT1078Plugin) RegisterHandler() map[string]http.HandlerFunc {
 					}
 				case G722:
 					rtpEncoding = webrtc.RTPCodecParameters{
-						RTPCodecCapability: webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypePCMU, ClockRate: 8000},
+						RTPCodecCapability: webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeG722, ClockRate: 8000},
 						PayloadType:        9,
 					}
 				}
@@ -265,39 +265,32 @@ func (j *JT1078Plugin) RegisterHandler() map[string]http.HandlerFunc {
 			<-gatherComplete
 
 			peerConnection.OnTrack(func(track *webrtc.TrackRemote, receiver *webrtc.RTPReceiver) {
-				go func() {
-					if track.Kind() == webrtc.RTPCodecTypeAudio {
-						var (
-							// mac电脑浏览器上测试 包大小是160
-							audioData = make([]byte, 1024)
-							seq       = uint16(0)
-						)
-						defer clear(audioData)
-						for {
-							n, _, err := track.Read(audioData)
-							if err != nil {
-								j.Debug("read audio data fail",
-									slog.Any("err", err))
-								return
-							} else if n > 0 {
-								efficientData := make([]byte, n)
-								copy(efficientData, audioData[:n])
-								for _, v := range req.Group {
-									p := jt1078.NewCustomPacket(v.Sim, v.Channel, func(p *jt1078.Packet) {
-										p.Flag.PT = jt1078.PTG711A
-										p.DataType = jt1078.DataTypeA // 音频包
-										p.Timestamp = uint64(time.Now().UnixMilli())
-										p.Seq = seq
-										p.Body = efficientData
-									})
-									data, _ := p.Encode()
-									j.sessions.SendAudioData(v.AudioPort, data)
-								}
-								seq++
-							}
+				if track.Kind() == webrtc.RTPCodecTypeAudio {
+					var seq = uint16(0)
+					for {
+						rtp, _, err := track.ReadRTP()
+						if err != nil {
+							j.Debug("read rtp fail",
+								slog.Any("err", err))
+							return
 						}
+						if rtp == nil {
+							continue
+						}
+						for _, v := range req.Group {
+							p := jt1078.NewCustomPacket(v.Sim, v.Channel, func(p *jt1078.Packet) {
+								p.Flag.PT = jt1078.PTG711A
+								p.DataType = jt1078.DataTypeA // 音频包
+								p.Timestamp = uint64(time.Now().UnixMilli())
+								p.Seq = seq
+								p.Body = rtp.Payload
+							})
+							data, _ := p.Encode()
+							j.sessions.SendAudioData(v.AudioPort, data)
+						}
+						seq++
 					}
-				}()
+				}
 			})
 
 			w.Header().Set("Content-Type", "application/json")
