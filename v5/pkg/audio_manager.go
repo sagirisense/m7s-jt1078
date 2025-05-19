@@ -134,7 +134,14 @@ func (am *AudioManager) SendAudioData(port int, data []byte) {
 	am.operationFuncChan <- func(record map[int]*session) {
 		defer close(ch)
 		if v, ok := record[port]; ok {
-			v.audioChan <- data
+			select {
+			case v.audioChan <- data:
+			default:
+				am.logger.Warn("audio send fail",
+					slog.Int("port", port),
+					slog.String("data", fmt.Sprintf("%x", data)))
+				return
+			}
 		}
 	}
 	<-ch

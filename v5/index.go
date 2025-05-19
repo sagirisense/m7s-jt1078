@@ -202,7 +202,6 @@ func (j *JT1078Plugin) RegisterHandler() map[string]http.HandlerFunc {
 			settingEngine.SetICEUDPMux(mux)
 			settingEngine.SetNAT1To1IPs([]string{ip}, webrtc.ICECandidateTypeHost)
 			api := webrtc.NewAPI(webrtc.WithSettingEngine(settingEngine), webrtc.WithMediaEngine(func() *webrtc.MediaEngine {
-				m := &webrtc.MediaEngine{}
 				var rtpEncoding webrtc.RTPCodecParameters
 				switch req.EnterAudioEncoding {
 				case G711A:
@@ -223,6 +222,7 @@ func (j *JT1078Plugin) RegisterHandler() map[string]http.HandlerFunc {
 						PayloadType:        9,
 					}
 				}
+				m := &webrtc.MediaEngine{}
 				_ = m.RegisterCodec(rtpEncoding, webrtc.RTPCodecTypeAudio)
 				return m
 			}()))
@@ -277,11 +277,13 @@ func (j *JT1078Plugin) RegisterHandler() map[string]http.HandlerFunc {
 						if rtp == nil {
 							continue
 						}
+						// 按协议要求 以任意值开始 然后按毫秒的时间间隔递增即可
+						timestamp := time.Now().UnixMilli()
 						for _, v := range req.Group {
 							p := jt1078.NewCustomPacket(v.Sim, v.Channel, func(p *jt1078.Packet) {
-								p.Flag.PT = jt1078.PTG711A
-								p.DataType = jt1078.DataTypeA // 音频包
-								p.Timestamp = uint64(time.Now().UnixMilli())
+								p.Flag.PT = jt1078.PTType(req.EnterAudioEncoding) // 默认G711A
+								p.DataType = jt1078.DataTypeA                     // 音频包
+								p.Timestamp = uint64(timestamp)
 								p.Seq = seq
 								p.Body = rtp.Payload
 							})
