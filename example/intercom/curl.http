@@ -72,13 +72,3 @@ Content-Type: application/json
   }
 }
 
-### 查询音视频属性
-POST https://124.221.30.46:12000/api/v1/jt808/9003
-Content-Type: application/json
-
-{
-  "key": "10088",
-  "data": {
-
-  }
-}

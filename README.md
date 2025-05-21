@@ -50,7 +50,51 @@ Content-Type: application/json
 }
 ```
 
-<h3>二、 浏览器webrtc下发音频给服务器</h3>
+<h3>二、 下发9003指令</h3>
+
+``` http
+### 对讲测试 设备连接到服务器端口
+POST https://124.221.30.46:12000/api/v1/jt808/9003
+Content-Type: application/json
+
+{
+  "key": "10088",
+  "data": {
+
+  }
+}
+
+```
+
+- 显示设备音频信息如下
+
+``` json
+{
+  "code": 200,
+  "msg": "success",
+  "data": {
+    "errDescribe": "",
+    "command": 36867,
+    "replyCommand": 4099,
+    "details": {
+      "enterAudioEncoding": 6,
+      "enterAudioChannelsNumber": 1,
+      "enterAudioSampleRate": 0,
+      "enterAudioSampleDigits": 1,
+      "audioFrameLength": 320,
+      "hasSupportedAudioOutput": 0,
+      "videoEncoding": 98,
+      "terminalSupportedMaxNumberOfAudioPhysicalChannels": 8,
+      "terminalSupportedMaxNumberOfVideoPhysicalChannels": 8
+    },
+    "terminalMessage": "7e1003000a0000000100884e0406010001014000620808ff7e",
+    "platformMessage": "7e900300000000000100880c796f7e",
+    "remark": "平台-查询终端音视频属性 -> 终端-上传音视频属性"
+  }
+}
+```
+
+<h3>三、 浏览器webrtc下发音频给服务器</h3>
 
 - SDP格式如下所示 额外增加一个组 把音频下发给这个组的
 
@@ -62,12 +106,15 @@ Content-Type: application/json
         Channel   uint8  `json:"channel"`
         AudioPort int    `json:"audioPort"`
     }
+    // EnterAudioEncoding 音频类型参数 根据jt1078-2016表12 2-G722 6-G711A 7-G711U
+    // 默认6-G711A
+    EnterAudioEncoding int `json:"enterAudioEncoding"`
   }
 ```
 
 - 服务器返回固定的外网IP和端口 ICE沟通可直接使用
 
-<h3>三、关闭对讲</h3>
+<h3>四、关闭对讲</h3>
 
 1. 浏览器端关闭对讲
 2. 下发9102指令 让设备结束对讲
@@ -106,7 +153,7 @@ jt1078:
   intercom:
     enable: true # 是否启用 用于双向对讲
     jt1078webrtc:
-      port: 12020 # 外网端口 用于浏览器webrtc把音频数据推到这个端口
+      port: 12020 # 外网UDP端口 用于浏览器webrtc把音频数据推到这个端口
       ip: 124.221.30.46 # 外网ip 用于SDP协商修改
     audioports: [12021, 12050] # 音频端口 [min,max]
     onjoinurl: "https://127.0.0.1:12000/api/v1/jt808/event/join-audio" # 设备连接到音频端口的回调
