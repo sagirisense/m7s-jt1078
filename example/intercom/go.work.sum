@@ -144,6 +144,7 @@ github.com/creack/pty v1.1.7/go.mod h1:lj5s0c3V2DBrqTV7llrYr5NG6My20zk30Fl46Y7Do
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/creack/pty v1.1.20 h1:VIPb/a2s17qNeQgDnkfZC35RScx+blkKF8GV68n80J4=
 github.com/creack/pty v1.1.20/go.mod h1:MOBLtS5ELjhRRrroQr9kyvTxUAFNvYEK993ew/Vr4O4=
+github.com/cuteLittleDevil/m7s-jt1078/v5 v5.4.2/go.mod h1:IruDxdWBKu72A2obGE31QQaqLdBdXc/V0tBiDvn294o=
 github.com/datarhei/gosrt v0.7.0 h1:1/IY66HVVgqGA9zkmL5l6jUFuI8t/76WkuamSkJqHqs=
 github.com/datarhei/gosrt v0.7.0/go.mod h1:wTDoyog1z4au8Fd/QJBQAndzvccuxjqUL/qMm0EyJxE=
 github.com/dchest/siphash v1.2.3 h1:QXwFc8cFOR2dSa/gE6o/HokBMWtLUaNDVd+22aKHeEA=

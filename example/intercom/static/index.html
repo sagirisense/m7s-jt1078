@@ -45,26 +45,7 @@
 
     async function startSendingAudio() {
         try {
-            // 获取音频流
-            mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-            // 创建 RTCPeerConnection 实例
-            peerConnection = new RTCPeerConnection();
-
-            // 将音频轨道添加到连接中
-            mediaStream.getTracks().forEach(track => {
-                peerConnection.addTrack(track, mediaStream);
-            });
-            peerConnection.addEventListener('icecandidate', handleConnection);
-
-            // 创建一个 offer
-            const offer = await peerConnection.createOffer();
-            await peerConnection.setLocalDescription(offer);
-            const url = document.getElementById('url').value;
-            const audioPort = document.getElementById('portsInput').value;
             const simCard = document.getElementById('simCard').value;
-
-            // 发起新的HTTP请求并处理响应
             const newUrl = document.getElementById('audioTextBox').value;
             const newResponse = await fetch(newUrl, {
                 method: 'POST',
@@ -82,9 +63,39 @@
             const newData = await newResponse.json();
             console.log(newData)
             const audio = newData.data.details.enterAudioEncoding
-            console.log("音频类型 2-G722 6-G711A 7-G711U"+audio)
+            console.log("音频类型 2-G722 6-G711A 7-G711U  当前值:"+audio)
+            console.log("输入音频采样位数 0-8位 1-16位 2-32位 当前值:"+newData.data.details.enterAudioSampleDigits)
+            console.log("输入音频采样率 0-8kHz 1-22.05 kHz 2-44.1 kHz 3-48 kHz 当前值:"+newData.data.details.enterAudioSampleRate)
+            console.log("音频帧长度 范围1-4294967295 当前值:"+newData.data.details.audioFrameLength)
 
             statusDiv.textContent = `音频类型:` + audio;
+
+            // 获取音频流
+            mediaStream = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    echoCancellation: true,       // 启用回声消除
+                    noiseSuppression: true,       // 启用噪声抑制
+                    autoGainControl: true,        // 启用自动增益控制
+                    channelCount: 1,              // 使用单声道减少处理复杂度
+                    sampleRate: 8000,             // 设置合适的采样率
+                    sampleSize: 16,    // 位深度
+                }
+            });
+
+            // 创建 RTCPeerConnection 实例
+            peerConnection = new RTCPeerConnection();
+
+            // 将音频轨道添加到连接中
+            mediaStream.getTracks().forEach(track => {
+                peerConnection.addTrack(track, mediaStream);
+            });
+            peerConnection.addEventListener('icecandidate', handleConnection);
+
+            // 创建一个 offer
+            const offer = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offer);
+            const url = document.getElementById('url').value;
+            const audioPort = document.getElementById('portsInput').value;
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
