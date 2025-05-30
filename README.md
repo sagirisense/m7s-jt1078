@@ -14,7 +14,7 @@
 
 <h2>对讲流程参考</h2>
 
-- 需要设备连接到808服务 默认测试10088 sim卡号的设备连接到124.221.30.46:12001
+- 需要设备连接到808服务 默认测试sim卡号(10088)的设备连接到124.221.30.46:12001
 
 ![示意图](./example/testdata/m7s-jt1078.jpg)
 
@@ -46,7 +46,8 @@ Content-Type: application/json
 ``` http
 音频加入成功 {
   "port": 12022,
-  "address": "124.221.30.46:45852"
+  "address": "124.221.30.46:57492",
+  "startTime": "2025-05-30 14:09:08"
 }
 ```
 
@@ -67,7 +68,7 @@ Content-Type: application/json
 ```
 
 - 显示设备音频信息如下
-- 参数参考 https://github.com/cuteLittleDevil/go-jt808/blob/main/protocol/model/t_0x1003.go
+- 参数参考 [0x1003结构体](https://github.com/cuteLittleDevil/go-jt808/blob/main/protocol/model/t_0x1003.go#L12)
 
 ``` json
 {
@@ -137,11 +138,15 @@ Content-Type: application/json
 ```
 
 - 回调接口显示音频退出了 说明终端关闭了对讲 可重新使用该端口
+- 使用指令主动关闭 或者配置超时时间自动关闭（默认600秒)
 
 ``` http
 音频离开 {
   "port": 12022,
-  "address": "124.221.30.46:45852"
+  "address": "124.221.30.46:57492",
+  "startTime": "2025-05-30 14:09:08",
+  "endTime": "2025-05-30 14:09:56",
+  "err": "over time 47.243093226s"
 }
 ```
 

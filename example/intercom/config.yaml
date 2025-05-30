@@ -18,6 +18,7 @@ jt1078:
     audioports: [12021, 12050] # 音频端口 [min,max]
     onjoinurl: "https://127.0.0.1:12000/api/v1/jt808/event/join-audio" # 设备连接到音频端口的回调
     onleaveurl: "https://127.0.0.1:12000/api/v1/jt808/event/leave-audio" # 设备断开了音频端口的回调
+    overtimesecond: 60 # 多久没有下发对讲语言的数据 就关闭这个链接
 
   realtime: # 实时视频
     addr: '0.0.0.0:12051'

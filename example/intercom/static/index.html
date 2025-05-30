@@ -138,6 +138,7 @@
             // 发送关闭请求到服务器
             try {
                 const simCard = document.getElementById('simCard').value;
+                // 设备和jt1078之间的链接 手动关闭 或者设置超时自动关闭
                 const url = 'https://124.221.30.46:12000/api/v1/jt808/9102'
                 const response = await fetch(url, {
                     method: 'POST',

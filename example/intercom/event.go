@@ -9,8 +9,9 @@ import (
 
 func onEventJoinAudio(c *gin.Context) {
 	type Request struct {
-		Port    int    `json:"port"`
-		Address string `json:"address"`
+		Port      int    `json:"port"`
+		Address   string `json:"address"`
+		StartTime string `json:"startTime"`
 	}
 	var req Request
 	if err := c.BindJSON(&req); err != nil {
@@ -31,8 +32,11 @@ func onEventJoinAudio(c *gin.Context) {
 
 func onEventLeaveAudio(c *gin.Context) {
 	type Request struct {
-		Port    int    `json:"port"`
-		Address string `json:"address"`
+		Port      int    `json:"port"`
+		Address   string `json:"address"`
+		StartTime string `json:"startTime"`
+		EndTime   string `json:"endTime"`
+		Err       string `json:"err"`
 	}
 	var req Request
 	if err := c.BindJSON(&req); err != nil {
