@@ -6,7 +6,7 @@ import (
 	"io"
 	"log/slog"
 	"net"
-	"sync"
+	"time"
 )
 
 type audioOperationFunc func(record map[int]*session)
@@ -17,8 +17,10 @@ type (
 		operationFuncChan chan audioOperationFunc
 		audioPorts        [2]int
 		audios            map[int]*session
-		OnJoinURL         string
-		OnLeaveURL        string
+		// OverTime 多久没有向设备写数据就自动断开
+		OverTime   time.Duration
+		OnJoinURL  string
+		OnLeaveURL string
 	}
 
 	session struct {
@@ -53,61 +55,37 @@ func (am *AudioManager) Init() error {
 			for {
 				conn, err := listen.Accept()
 				if err == nil {
-					// 1. 设备连接到这个端口 发送回调
-					go onNoticeEvent(am.OnJoinURL, map[string]any{
-						"port":    port,
-						"address": conn.RemoteAddr().String(),
-					})
-					var (
-						stopChan = make(chan struct{})
-						once     sync.Once
-					)
+					go func(conn net.Conn) {
+						// 1. 设备连接到这个端口 发送回调
+						record := map[string]any{
+							"port":      port,
+							"address":   conn.RemoteAddr().String(),
+							"startTime": time.Now().Format(time.DateTime),
+						}
+						go onNoticeEvent(am.OnJoinURL, record)
 
-					// 2. 读取设备数据 只读不处理
-					go func() {
-						// 模拟器测试读的数据 194
-						buf := make([]byte, 1024)
-						defer clear(buf)
-						for {
-							if _, err := conn.Read(buf); err != nil {
-								once.Do(func() {
-									close(stopChan)
-									_ = conn.Close()
-								})
-								if errors.Is(err, net.ErrClosed) || errors.Is(err, io.EOF) {
-									am.logger.Debug("connection close",
-										slog.Int("port", port),
-										slog.Any("device addr", conn.RemoteAddr().String()),
-										slog.Any("err", err))
-									return
-								}
-								am.logger.Error("read data",
+						// 2. 处理设备读写
+						client := newDevice(conn, writeChan, am.OverTime)
+						completeChan := client.run()
+						if err := <-completeChan; err != nil {
+							record["err"] = err.Error()
+							if errors.Is(err, net.ErrClosed) || errors.Is(err, io.EOF) {
+								am.logger.Debug("connection close",
 									slog.Int("port", port),
 									slog.Any("device addr", conn.RemoteAddr().String()),
 									slog.Any("err", err))
-								return
+							} else {
+								am.logger.Warn("read data",
+									slog.Int("port", port),
+									slog.Any("device addr", conn.RemoteAddr().String()),
+									slog.Any("err", err))
 							}
 						}
-					}()
 
-					// 3. 把浏览器收集的音频数据发给设备
-					go func() {
-						for {
-							select {
-							case <-stopChan:
-								// 4. 设备断开了
-								onNoticeEvent(am.OnLeaveURL, map[string]any{
-									"port":    port,
-									"address": conn.RemoteAddr().String(),
-								})
-								return
-							case data := <-writeChan:
-								if _, err := conn.Write(data); err != nil {
-									return
-								}
-							}
-						}
-					}()
+						// 3. 设备断开了
+						record["endTime"] = time.Now().Format(time.DateTime)
+						onNoticeEvent(am.OnLeaveURL, record)
+					}(conn)
 				}
 			}
 		}(ch, port)

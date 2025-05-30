@@ -53,7 +53,7 @@ Content-Type: application/json
 <h3>二、 下发9003指令</h3>
 
 ``` http
-### 对讲测试 设备连接到服务器端口
+### 查询设备音视频属性
 POST https://124.221.30.46:12000/api/v1/jt808/9003
 Content-Type: application/json
 
@@ -67,6 +67,7 @@ Content-Type: application/json
 ```
 
 - 显示设备音频信息如下
+- 参数参考 https://github.com/cuteLittleDevil/go-jt808/blob/main/protocol/model/t_0x1003.go
 
 ``` json
 {
@@ -158,6 +159,7 @@ jt1078:
     audioports: [12021, 12050] # 音频端口 [min,max]
     onjoinurl: "https://127.0.0.1:12000/api/v1/jt808/event/join-audio" # 设备连接到音频端口的回调
     onleaveurl: "https://127.0.0.1:12000/api/v1/jt808/event/leave-audio" # 设备断开了音频端口的回调
+    overtimesecond: 60 # 多久没有下发对讲语言的数据 就关闭这个链接
 
   realtime: # 实时视频
     addr: '0.0.0.0:12051'
@@ -175,7 +177,7 @@ jt1078:
     # jt1078文件 默认循环发送
       - name: ../testdata/data.txt
         addr: 127.0.0.1:12051 # 模拟实时
-      - name: ../testdata/data.txt
+      - name: ../testdata/audio_data.txt
         addr: 127.0.0.1:12052 # 模拟回放
 
 ```

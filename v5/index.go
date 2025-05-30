@@ -35,11 +35,12 @@ type (
 	}
 
 	jt1078Intercom struct {
-		Enable       bool         `default:"false" desc:"是否开启音频"`
-		Jt1078Webrtc jt1078Webrtc `default:"{}" desc:"webrtc相关配置"`
-		AudioPorts   [2]int       `default:"[10000,10010]" desc:"音频端口 用于下发数据"`
-		OnJoinURL    string       `default:"http://127.0.0.1:10011/api/v1/join-audio" desc:"设备连接到音频端口时"`
-		OnLeaveURL   string       `default:"http://127.0.0.1:10011/api/v1/leave-audio" desc:"对讲客户端离开时"`
+		Enable         bool         `default:"false" desc:"是否开启音频"`
+		Jt1078Webrtc   jt1078Webrtc `default:"{}" desc:"webrtc相关配置"`
+		AudioPorts     [2]int       `default:"[10000,10010]" desc:"音频端口 用于下发数据"`
+		OnJoinURL      string       `default:"http://127.0.0.1:10011/api/v1/join-audio" desc:"设备连接到音频端口时"`
+		OnLeaveURL     string       `default:"http://127.0.0.1:10011/api/v1/leave-audio" desc:"对讲客户端离开时"`
+		OverTimeSecond int          `default:"600" desc:"多久没有向设备写数据就自动断开 单位秒"`
 	}
 
 	jt1078Webrtc struct {
@@ -63,15 +64,20 @@ type (
 func (j *JT1078Plugin) OnInit() (err error) {
 	if j.RealTime.Addr != "" {
 		if j.Intercom.Enable {
-			j.Info("audio init",
-				slog.Any("ports", j.Intercom.AudioPorts),
-				slog.String("join", j.Intercom.OnJoinURL),
-				slog.String("leave", j.Intercom.OnLeaveURL))
 			j.sessions = pkg.NewAudioManager(j.Logger, j.Intercom.AudioPorts,
 				func(am *pkg.AudioManager) {
 					am.OnJoinURL = j.Intercom.OnJoinURL
 					am.OnLeaveURL = j.Intercom.OnLeaveURL
+					if j.Intercom.OverTimeSecond <= 0 {
+						j.Intercom.OverTimeSecond = 600
+					}
+					am.OverTime = time.Duration(j.Intercom.OverTimeSecond) * time.Second
 				})
+			j.Info("audio init",
+				slog.Any("ports", j.Intercom.AudioPorts),
+				slog.Int("overTime", j.Intercom.OverTimeSecond),
+				slog.String("join", j.Intercom.OnJoinURL),
+				slog.String("leave", j.Intercom.OnLeaveURL))
 			if err := j.sessions.Init(); err != nil {
 				j.Error("init error",
 					slog.String("err", err.Error()))
