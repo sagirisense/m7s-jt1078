@@ -1,0 +1,31 @@
+### 开启实时视频 音视频
+POST http://124.221.30.46:11000/api/v1/jt808/9101
+Content-Type: application/json
+
+{
+  "key": "10086",
+  "data": {
+    "serverIPLen": 13,
+    "serverIPAddr": "124.221.30.46",
+    "tcpPort": 11051,
+    "udpPort": 0,
+    "channelNo": 1,
+    "dataType": 0,
+    "streamType": 0
+  }
+}
+
+
+### 关闭实时视频
+POST http://124.221.30.46:11000/api/v1/jt808/9102
+Content-Type: application/json
+
+{
+  "key": "10086",
+  "data": {
+    "channelNo": 1,
+    "controlCmd": 0,
+    "closeAudioVideoData": 0,
+    "streamType": 0
+  }
+}

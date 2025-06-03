@@ -164,7 +164,7 @@ jt1078:
     audioports: [12021, 12050] # 音频端口 [min,max]
     onjoinurl: "https://127.0.0.1:12000/api/v1/jt808/event/join-audio" # 设备连接到音频端口的回调
     onleaveurl: "https://127.0.0.1:12000/api/v1/jt808/event/leave-audio" # 设备断开了音频端口的回调
-    overtimesecond: 60 # 多久没有下发对讲语言的数据 就关闭这个链接
+    overtimesecond: 60 # 多久没有下发对讲语音的数据 就关闭这个链接
 
   realtime: # 实时视频
     addr: '0.0.0.0:12051'
@@ -175,7 +175,7 @@ jt1078:
   playback: # 回放视频
     addr: '0.0.0.0:12052'
     onjoinurl: "https://127.0.0.1:12000/api/v1/play-back-join" # 设备连接到了回放视频指定端口的回调
-    onleaveurl: "https://127.0.0.1:12000/api/v1/play-back-leave" # 设备断开到了回放视频指定端口的回调
+    onleaveurl: "https://127.0.0.1:12000/api/v1/play-back-leave" # 设备断开了回放视频指定端口的回调
     prefix: "live/jt1079" # 默认自定义前缀-手机号-通道 如：live/jt1079-295696659617-1
 
   simulations:

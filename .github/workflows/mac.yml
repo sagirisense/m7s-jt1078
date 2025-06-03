@@ -1,0 +1,63 @@
+name: release-macos
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  build-macos: #https://github.com/softprops/action-gh-release
+    name: Build on macOS
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build
+        run: | 
+          echo ${{ github.sha }} > Release.txt
+          mkdir release
+          cp Release.txt LICENSE release/
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.23'
+
+      - name: Go Build
+        run: |
+          cd ./example/simulation/
+          go build -o simulation || exit 1
+          cd ../video
+          go build -o video || exit 1
+          cd ../intercom
+          go build -o intercom || exit 1
+
+      - name: Package Files
+        run: |
+          cp -r ./example/testdata/ release/testdata
+          cp ./example/README.md release/README.md
+          mkdir -p release/simulation
+          cp ./example/simulation/simulation release/simulation/
+          cp ./example/simulation/config.yaml release/simulation/
+          mkdir -p release/video/video
+          cp ./example/video/video release/video/
+          cp ./example/video/config.yaml release/video/  
+          cp ./example/video/curl.http release/video/  
+          cp -r ./example/video/static/ release/video/static
+          mkdir -p release/intercom
+          cp ./example/intercom/intercom release/intercom/
+          cp ./example/intercom/config.yaml release/intercom/  
+          cp ./example/intercom/curl.http release/intercom/  
+          cp -r ./example/intercom/static/ release/intercom/static
+          zip -r release-darwin-arm64.zip release
+
+      - name: Test
+        run: cat Release.txt
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: release-darwin-arm64.zip
+          update_latest_release: true

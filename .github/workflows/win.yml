@@ -1,0 +1,63 @@
+name: release-windows
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  build-windows: #https://github.com/softprops/action-gh-release
+    name: Build on Windows
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build
+        run: |
+          echo ${{ github.sha }} > Release.txt
+          New-Item -ItemType Directory -Force -Path release
+          Copy-Item Release.txt, LICENSE -Destination release
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.23'
+
+      - name: Go Build
+        run: |
+          cd .\example\simulation
+          go build -o simulation.exe || exit 1
+          cd ..\video
+          go build -o video.exe || exit 1
+          cd ..\intercom
+          go build -o intercom.exe || exit 1
+
+      - name: Package Files
+        run: |
+          New-Item -ItemType Directory -Force -Path release\video
+          Copy-Item -Recurse .\example\testdata\ release\testdata
+          Copy-Item .\example\README.md release\README.md
+          Copy-Item .\example\video\video.exe release\video\
+          Copy-Item .\example\video\config.yaml release\video\
+          Copy-Item .\example\video\curl.http release\video\
+          Copy-Item -Recurse .\example\video\static release\video\static
+          New-Item -ItemType Directory -Force -Path release\simulation
+          Copy-Item .\example\simulation\simulation.exe release\simulation\
+          Copy-Item .\example\simulation\config.yaml release\simulation\
+          New-Item -ItemType Directory -Force -Path release\intercom
+          Copy-Item .\example\intercom\intercom.exe release\intercom\
+          Copy-Item .\example\intercom\config.yaml release\intercom\
+          Copy-Item .\example\intercom\curl.http release\intercom\
+          Copy-Item -Recurse .\example\intercom\static release\intercom\static
+          Compress-Archive -Path release -DestinationPath release-windows-amd64.zip
+
+      - name: Test
+        run: Get-Content Release.txt
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: release-windows-amd64.zip
+          update_latest_release: true
