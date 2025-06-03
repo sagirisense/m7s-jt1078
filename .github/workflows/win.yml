@@ -65,4 +65,4 @@ jobs:
         with:
           token: ${{ secrets.ACTION_TOKEN }}
           files: release-windows-amd64.zip
-          update_latest_release: true
+          make_latest: false

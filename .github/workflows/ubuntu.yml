@@ -71,4 +71,4 @@ jobs:
         with:
           token: ${{ secrets.ACTION_TOKEN }}
           files: release-ubuntu-${{ matrix.arch }}.zip
-          update_latest_release: true
+          make_latest: false
