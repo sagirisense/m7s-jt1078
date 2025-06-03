@@ -52,6 +52,8 @@ jobs:
           Copy-Item .\example\intercom\go-jt808.online.crt release\intercom\
           Copy-Item .\example\intercom\go-jt808.online.key release\intercom\
           Copy-Item -Recurse .\example\intercom\static release\intercom\static
+          New-Item -ItemType Directory -Force -Path release\jt1078
+          Copy-Item -Recurse .\example\jt1078\ release\jt1078
           Compress-Archive -Path release -DestinationPath release-windows-amd64.zip
 
       - name: Test

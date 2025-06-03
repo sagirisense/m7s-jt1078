@@ -58,6 +58,8 @@ jobs:
           cp ./example/intercom/go-jt808.online.crt release/intercom/
           cp ./example/intercom/go-jt808.online.key release/intercom/
           cp -r ./example/intercom/static/ release/intercom/static
+          mkdir -p release/jt1078
+          cp -r ./example/jt1078/ release/jt1078/
           zip -r release-ubuntu-${{ matrix.arch }}.zip release
 
       - name: Test
