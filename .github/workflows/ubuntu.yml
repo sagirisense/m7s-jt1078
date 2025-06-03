@@ -46,7 +46,7 @@ jobs:
           mkdir -p release/simulation
           cp ./example/simulation/simulation release/simulation/
           cp ./example/simulation/config.yaml release/simulation/
-          mkdir -p release/video/video
+          mkdir -p release/video
           cp ./example/video/video release/video/
           cp ./example/video/config.yaml release/video/  
           cp ./example/video/curl.http release/video/  
@@ -65,5 +65,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
+          token: ${{ secrets.ACTION_TOKEN }}
           files: release-ubuntu-${{ matrix.arch }}.zip
           update_latest_release: true
