@@ -49,6 +49,8 @@ jobs:
           cp ./example/intercom/intercom release/intercom/
           cp ./example/intercom/config.yaml release/intercom/  
           cp ./example/intercom/curl.http release/intercom/  
+          cp ./example/intercom/go-jt808.online.crt release/intercom/
+          cp ./example/intercom/go-jt808.online.key release/intercom/
           cp -r ./example/intercom/static/ release/intercom/static
           zip -r release-darwin-arm64.zip release
 
