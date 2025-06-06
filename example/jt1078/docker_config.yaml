@@ -1,9 +1,9 @@
 global:
   http:
     listen_addr: ":12079"
-    listen_addr_tls: ":12080" # 用于HTTPS方式访问API的端口配置
-    cert_file: "go-jt808.online.crt"
-    key_file: "go-jt808.online.key"
+#    listen_addr_tls: ":12080" # 用于HTTPS方式访问API的端口配置
+#    cert_file: "go-jt808.online.crt"
+#    key_file: "go-jt808.online.key"
   tcp:
     listen_addr: ":12081"
 
@@ -11,7 +11,7 @@ jt1078:
   enable: true
 
   intercom:
-    enable: true # 是否启用 用于双向对讲
+    enable: false # 是否启用 用于双向对讲
     jt1078webrtc:
       port: 12020 # 对讲默认udp端口
       ip: "124.221.30.46" # 外网ip 用于SDP协商修改

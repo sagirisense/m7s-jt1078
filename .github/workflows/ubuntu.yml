@@ -3,7 +3,7 @@ name: release-ubuntu
 on:
   push:
     tags:
-      - "v*.*.*"
+      - "v1.*.*"
 
 jobs:
   build-ubuntu:

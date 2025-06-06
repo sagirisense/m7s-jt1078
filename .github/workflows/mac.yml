@@ -3,7 +3,7 @@ name: release-macos
 on:
   push:
     tags:
-      - "v*.*.*"
+      - "v1.*.*"
 
 jobs:
   build-macos: #https://github.com/softprops/action-gh-release
