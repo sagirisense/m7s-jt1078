@@ -7,9 +7,7 @@
 
 <h1 id="m7s"> m7s-jt1078 </h1>
 
-- [m7s官方地址](https://monibuca.com)
 
----
 
 | 例子 |  测试页面  | 代码 |
 |----------|-----|-------------------|
@@ -17,6 +15,32 @@
 | 对讲 | https://go-jt808.online:12000 | [详情点击](./example/intercom)  |
 | 模拟流 | 视频 http://124.221.30.46:8088/preview/live/jt1078-295696659617-1?type=mp4 <br/> 音视频 http://124.221.30.46:8088/preview/live/jt1079-156987000796-1| [详情点击](./example/simulation)  |
 
+---
+
+- [m7s官方地址](https://monibuca.com)
+- [仅使用jt1078详情](./example/jt1078)
+
+```
+docker pull cdcddcdc/m7s-jt1078:latest
+```
+
+1. 音视频启动
+```
+docker run -d \
+-v /home/m7s-jt1078/config.yaml:/app/config.yaml \
+--network host \
+cdcddcdc/m7s-jt1078:latest
+```
+
+2. 增加对讲功能
+```
+docker run -d \
+-v /home/m7s-jt1078/go-jt808.online.crt:/app/go-jt808.online.crt \
+-v /home/m7s-jt1078/go-jt808.online.key:/app/go-jt808.online.key \
+-v /home/m7s-jt1078/config.yaml:/app/config.yaml \
+--network host \
+cdcddcdc/m7s-jt1078:latest
+```
 ---
 
 <h2>对讲流程参考</h2>
