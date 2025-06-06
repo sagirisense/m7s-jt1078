@@ -1,6 +1,6 @@
 module jt1078
 
-go 1.24.0
+go 1.23.8
 
 require (
 	github.com/cuteLittleDevil/m7s-jt1078/v5 v5.6.0
@@ -8,7 +8,6 @@ require (
 )
 
 require (
-	github.com/alchemy/rotoslog v0.2.2 // indirect
 	github.com/andybalholm/brotli v1.1.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bluenviron/mediacommon v1.14.0 // indirect
