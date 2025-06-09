@@ -32,6 +32,8 @@ jobs:
           go build -o video.exe || exit 1
           cd ..\intercom
           go build -o intercom.exe || exit 1
+          cd ..\jt1078
+          go build -o jt1078.exe || exit 1
 
       - name: Package Files
         run: |
